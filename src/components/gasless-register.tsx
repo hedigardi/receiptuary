@@ -6,6 +6,10 @@ import { usePrivy } from "@privy-io/react-auth";
 import { PaymasterMode } from "@biconomy/account";
 import { AA_CHAIN_ID } from "@/lib/aa";
 import { getExplorerTxUrl } from "@/lib/explorer";
+import {
+  getTechnicalErrorDetails,
+  toUserFriendlyError,
+} from "@/lib/user-friendly-errors";
 import { RECEIPTUARY_ABI, CONTRACT_ADDRESS } from "@/lib/receiptuary";
 import { useSmartAccount } from "@/hooks/use-smart-account";
 
@@ -59,11 +63,7 @@ export function GaslessRegister({ fileHash }: Props) {
       const { receipt } = await userOpResponse.wait();
       setTxHash(receipt.transactionHash);
     } catch (caught) {
-      setSubmitError(
-        caught instanceof Error
-          ? caught.message
-          : "Gasless registration failed.",
-      );
+      setSubmitError(toUserFriendlyError(caught, "gasless"));
     } finally {
       setIsSubmitting(false);
     }
@@ -203,9 +203,23 @@ export function GaslessRegister({ fileHash }: Props) {
           </div>
         </div>
       ) : null}
-      {error ? <p className="text-xs text-[var(--warn)]">{error}</p> : null}
+      {error ? (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+          <p>{toUserFriendlyError(error, "smartAccount")}</p>
+          {getTechnicalErrorDetails(error) ? (
+            <details className="mt-2 opacity-80">
+              <summary className="cursor-pointer">Technical details</summary>
+              <p className="mt-1 break-all">
+                {getTechnicalErrorDetails(error)}
+              </p>
+            </details>
+          ) : null}
+        </div>
+      ) : null}
       {submitError ? (
-        <p className="text-xs text-[var(--warn)]">{submitError}</p>
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+          <p>{submitError}</p>
+        </div>
       ) : null}
     </form>
   );

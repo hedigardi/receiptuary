@@ -12,7 +12,7 @@ import {
   walletConnectWallet,
 } from "@rainbow-me/rainbowkit/wallets";
 import { createConfig, http } from "wagmi";
-import { baseSepolia, polygonAmoy } from "wagmi/chains";
+import { baseSepolia } from "wagmi/chains";
 
 const configuredProjectId =
   process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID?.trim();
@@ -22,7 +22,7 @@ const projectId =
     ? configuredProjectId
     : null;
 
-export const supportedChains = [baseSepolia, polygonAmoy] as const;
+export const supportedChains = [baseSepolia] as const;
 
 const connectors = projectId
   ? connectorsForWallets(
@@ -57,7 +57,6 @@ export const wagmiConfig = createConfig({
   connectors,
   transports: {
     [baseSepolia.id]: http(),
-    [polygonAmoy.id]: http(),
   },
   ssr: true,
 });

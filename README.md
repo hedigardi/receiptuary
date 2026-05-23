@@ -69,12 +69,6 @@ Deploy to Base Sepolia:
 npm run contract:deploy:base
 ```
 
-Deploy to Polygon Amoy:
-
-```bash
-npm run contract:deploy:polygon
-```
-
 After a deploy, the frontend is automatically updated with the address and ABI in `src/lib/generated/receiptuary.generated.ts`.
 You can still override the address via `NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS`.
 

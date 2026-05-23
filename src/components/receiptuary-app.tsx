@@ -1,7 +1,8 @@
 "use client";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useCallback, useMemo, useState } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ReceiptDropzone } from "@/components/receipt-dropzone";
 import { GaslessRegister } from "@/components/gasless-register";
 import { RegisterReceipt } from "@/components/register-receipt";
@@ -21,46 +22,382 @@ import {
 import { truncateHash } from "@/lib/crypto";
 
 type Mode = "issuer" | "verifier";
+const LOGO_SRC = "/logo.png?v=20260524-2";
 
 export function ReceiptuaryApp() {
   const [mode, setMode] = useState<Mode>("verifier");
   const [registrationMode, setRegistrationMode] = useState<
     "standard" | "gasless"
   >("standard");
+  const [showChainDetails, setShowChainDetails] = useState(false);
+  const chainPopoverRef = useRef<HTMLDivElement | null>(null);
   const [fileName, setFileName] = useState<string>("");
   const [fileHash, setFileHash] = useState<`0x${string}` | null>(null);
   const networkBadge = getNetworkBadge(DEPLOYED_NETWORK_NAME);
   const deployedChainId = getChainIdFromNetworkName(DEPLOYED_NETWORK_NAME);
-
-  const modeDescription = useMemo(() => {
-    if (mode === "issuer") {
-      return "Register a receipt hash and create a permanent on-chain anchor.";
-    }
-
-    return "Verify whether a receipt still matches the original file.";
-  }, [mode]);
+  const flowSteps =
+    mode === "issuer"
+      ? [
+          {
+            title: "Upload receipt",
+            description:
+              "Drop your PDF and Receiptuary creates a SHA-256 fingerprint.",
+            icon: (
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <path d="M14 2v6h6" />
+                <path d="M12 17V9" />
+                <path d="M9 12l3-3 3 3" />
+              </svg>
+            ),
+          },
+          {
+            title: "Connect and sign",
+            description:
+              "Enter issuer details, then approve the registration from your wallet.",
+            icon: (
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="2" y="7" width="20" height="14" rx="3" />
+                <path d="M16 13h2" />
+                <path d="M6 7V5a2 2 0 0 1 2-2h8" />
+              </svg>
+            ),
+          },
+          {
+            title: "Proof on-chain",
+            description:
+              "The hash is anchored on-chain and can be verified later by anyone.",
+            icon: (
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="5" width="6" height="6" rx="1" />
+                <rect x="15" y="5" width="6" height="6" rx="1" />
+                <rect x="9" y="13" width="6" height="6" rx="1" />
+                <path d="M9 8h6" />
+                <path d="M18 11v2" />
+                <path d="M6 11v2" />
+                <path d="M12 13v-2" />
+              </svg>
+            ),
+          },
+        ]
+      : [
+          {
+            title: "Upload receipt",
+            description:
+              "Select a PDF and generate the same SHA-256 fingerprint locally.",
+            icon: (
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <path d="M14 2v6h6" />
+                <path d="M12 17V9" />
+                <path d="M9 12l3-3 3 3" />
+              </svg>
+            ),
+          },
+          {
+            title: "Run verification",
+            description:
+              "Receiptuary checks the hash against the on-chain contract record.",
+            icon: (
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+            ),
+          },
+          {
+            title: "See clear result",
+            description:
+              "Get a Verified/Unverified status plus explorer links for transparency.",
+            icon: (
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            ),
+          },
+        ];
 
   const handleHashed = useCallback((file: File, hash: `0x${string}`) => {
     setFileName(file.name);
     setFileHash(hash);
   }, []);
 
+  const handleClearUploadedFile = useCallback(() => {
+    setFileName("");
+    setFileHash(null);
+  }, []);
+
+  useEffect(() => {
+    if (!showChainDetails) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target || !chainPopoverRef.current) {
+        return;
+      }
+
+      if (!chainPopoverRef.current.contains(target)) {
+        setShowChainDetails(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowChainDetails(false);
+      }
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showChainDetails]);
+
   return (
     <main className="grid-overlay flex min-h-full flex-1 items-center justify-center px-4 py-10 md:px-10">
       <div className="w-full max-w-4xl rounded-3xl border border-[var(--card-border)] bg-[var(--card)]/95 p-6 shadow-[0_30px_120px_rgba(41,33,18,0.15)] backdrop-blur md:p-8">
         <header className="flex flex-col gap-4 border-b border-[var(--card-border)] pb-5 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="font-[var(--font-mono)] text-xs uppercase tracking-[0.22em] text-stone-500">
-              Receiptuary
-            </p>
-            <h1 className="mt-1 font-[var(--font-display)] text-3xl font-bold leading-tight md:text-4xl">
-              Is it real?
-            </h1>
-            <p className="mt-2 max-w-xl text-sm text-stone-600">
-              {modeDescription}
-            </p>
+            <div className="relative">
+              <Image
+                src={LOGO_SRC}
+                alt="Receiptuary logo"
+                width={860}
+                height={286}
+                sizes="(max-width: 640px) 185px, (max-width: 768px) 225px, 260px"
+                className="h-auto w-[185px] sm:w-[225px] md:w-[260px]"
+                unoptimized
+                priority
+              />
+            </div>
+            <h1 className="sr-only">Receiptuary - Is it real?</h1>
           </div>
-          <ConnectButton showBalance={false} chainStatus="icon" />
+
+          <div
+            ref={chainPopoverRef}
+            className="relative flex w-full flex-wrap items-center justify-end gap-2 self-start md:w-auto md:flex-nowrap md:self-auto"
+          >
+            {IS_CONTRACT_CONFIGURED ? (
+              <button
+                type="button"
+                onClick={() => setShowChainDetails((current) => !current)}
+                aria-expanded={showChainDetails}
+                aria-controls="chain-profile-popover"
+                aria-haspopup="dialog"
+                className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${networkBadge.badgeClass} hover:brightness-[0.98]`}
+              >
+                <span
+                  className={`h-2.5 w-2.5 rounded-full ${networkBadge.dotClass}`}
+                />
+                <span className="max-w-[92px] truncate sm:max-w-none">
+                  {networkBadge.label}
+                </span>
+                <span className="hidden text-[11px] opacity-80 sm:inline">
+                  {showChainDetails ? "Hide" : "Details"}
+                </span>
+                <span
+                  aria-hidden="true"
+                  className={`text-[10px] leading-none transition-transform duration-200 ${
+                    showChainDetails ? "rotate-180" : "rotate-0"
+                  }`}
+                >
+                  v
+                </span>
+              </button>
+            ) : null}
+
+            <ConnectButton.Custom>
+              {({
+                account,
+                chain,
+                mounted,
+                authenticationStatus,
+                openAccountModal,
+                openConnectModal,
+              }) => {
+                const ready = mounted && authenticationStatus !== "loading";
+                const connected =
+                  ready &&
+                  !!account &&
+                  !!chain &&
+                  (!authenticationStatus ||
+                    authenticationStatus === "authenticated");
+
+                if (!connected) {
+                  return (
+                    <button
+                      type="button"
+                      onClick={openConnectModal}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3.5 py-2 text-sm font-semibold text-white transition hover:brightness-95 sm:w-auto"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="2" y="7" width="20" height="14" rx="3" />
+                        <path d="M16 13h2" />
+                        <path d="M6 7V5a2 2 0 0 1 2-2h8" />
+                      </svg>
+                      <span>Connect Wallet</span>
+                    </button>
+                  );
+                }
+
+                if (chain.unsupported) {
+                  return (
+                    <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
+                      <span className="inline-flex max-w-full items-center rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
+                        Switch to Base Sepolia in your wallet
+                      </span>
+                      <button
+                        type="button"
+                        onClick={openAccountModal}
+                        className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-xl bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white transition hover:brightness-95"
+                      >
+                        <svg
+                          aria-hidden="true"
+                          viewBox="0 0 24 24"
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect x="2" y="7" width="20" height="14" rx="3" />
+                          <path d="M16 13h2" />
+                          <path d="M6 7V5a2 2 0 0 1 2-2h8" />
+                        </svg>
+                        <span className="max-w-[110px] truncate sm:max-w-[140px]">
+                          {account.displayName}
+                        </span>
+                      </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
+                    <button
+                      type="button"
+                      onClick={openAccountModal}
+                      className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-xl bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white transition hover:brightness-95"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        className="h-3.5 w-3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="2" y="7" width="20" height="14" rx="3" />
+                        <path d="M16 13h2" />
+                        <path d="M6 7V5a2 2 0 0 1 2-2h8" />
+                      </svg>
+                      <span className="max-w-[110px] truncate sm:max-w-[140px]">
+                        {account.displayName}
+                      </span>
+                    </button>
+                  </div>
+                );
+              }}
+            </ConnectButton.Custom>
+
+            {IS_CONTRACT_CONFIGURED ? (
+              <div
+                id="chain-profile-popover"
+                className={`absolute left-0 right-0 top-full z-20 mt-2 origin-top rounded-2xl border border-[var(--card-border)] bg-white/95 p-4 text-xs text-stone-700 shadow-[0_18px_48px_rgba(41,33,18,0.16)] backdrop-blur transition-all duration-200 md:left-auto md:right-0 md:w-[22rem] md:origin-top-right ${
+                  showChainDetails
+                    ? "translate-y-0 opacity-100"
+                    : "pointer-events-none -translate-y-1 opacity-0"
+                }`}
+              >
+                <p className="font-semibold text-stone-800">
+                  Active chain profile
+                </p>
+                <p className="mt-2">
+                  Active chain ID: {deployedChainId ?? "unknown"}
+                </p>
+                <p className="mt-1">
+                  Recommended verification: {getChainLabel(84532)}
+                </p>
+                <p className="mt-1 break-all font-[var(--font-mono)]">
+                  Contract: {CONTRACT_ADDRESS}
+                </p>
+                <p className="mt-1">
+                  Address source: {CONTRACT_ADDRESS_SOURCE}
+                </p>
+              </div>
+            ) : null}
+          </div>
         </header>
 
         {!IS_CONTRACT_CONFIGURED ? (
@@ -70,30 +407,50 @@ export function ReceiptuaryApp() {
           </div>
         ) : null}
 
-        {IS_CONTRACT_CONFIGURED ? (
-          <div className="mt-4 rounded-2xl border border-[var(--card-border)] bg-white p-4 text-xs text-stone-700">
-            <p className="font-semibold text-stone-800">Active chain profile</p>
-            <div
-              className={`mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${networkBadge.badgeClass}`}
-            >
-              <span
-                className={`h-2.5 w-2.5 rounded-full ${networkBadge.dotClass}`}
-              />
-              <span>{networkBadge.label}</span>
+        <section className="mt-6 overflow-hidden rounded-2xl border border-[var(--card-border)] bg-gradient-to-br from-[var(--accent-soft)] via-white to-emerald-50 p-4 sm:p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">
+                How it works
+              </p>
+              <h2 className="mt-1 font-[var(--font-display)] text-xl text-stone-900">
+                A simple 3-step flow for everyone
+              </h2>
+              <p className="mt-1 text-sm text-stone-600">
+                {mode === "issuer"
+                  ? "You are in Issuer mode: create tamper-proof receipt records."
+                  : "You are in Verifier mode: check if a receipt has a valid on-chain proof."}
+              </p>
             </div>
-            <p className="mt-1">
-              Active chain ID: {deployedChainId ?? "unknown"}
-            </p>
-            <p className="mt-1">
-              Recommended verification: {getChainLabel(84532)} /{" "}
-              {getChainLabel(80002)}
-            </p>
-            <p className="mt-1 break-all font-[var(--font-mono)]">
-              Contract: {CONTRACT_ADDRESS}
-            </p>
-            <p className="mt-1">Address source: {CONTRACT_ADDRESS_SOURCE}</p>
+            <span className="inline-flex items-center rounded-full border border-emerald-200 bg-white/90 px-3 py-1 text-xs font-semibold text-emerald-800">
+              {mode === "issuer" ? "Issuer journey" : "Verifier journey"}
+            </span>
           </div>
-        ) : null}
+
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {flowSteps.map((step, index) => (
+              <div
+                key={step.title}
+                className="relative rounded-xl border border-white/60 bg-white/80 p-4 shadow-[0_10px_25px_rgba(3,98,76,0.08)] backdrop-blur"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
+                    {step.icon}
+                  </span>
+                  <span className="rounded-full border border-emerald-200 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                    Step {index + 1}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm font-semibold text-stone-900">
+                  {step.title}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-stone-600">
+                  {step.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
 
         <section className="mt-6 grid gap-5 md:grid-cols-[1fr_1.2fr]">
           <div className="space-y-4">
@@ -157,13 +514,43 @@ export function ReceiptuaryApp() {
 
             {fileHash ? (
               <div className="rounded-2xl border border-[var(--card-border)] bg-white p-4">
-                <p className="text-sm font-semibold">File: {fileName}</p>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold">File: {fileName}</p>
+                  <button
+                    type="button"
+                    onClick={handleClearUploadedFile}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+                    aria-label="Clear selected file locally"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="h-3.5 w-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M3 6h18" />
+                      <path d="M8 6V4h8v2" />
+                      <path d="M19 6l-1 14H6L5 6" />
+                      <path d="M10 11v6" />
+                      <path d="M14 11v6" />
+                    </svg>
+                    <span>Choose another file</span>
+                  </button>
+                </div>
                 <p className="mt-1 text-xs text-stone-600">SHA-256 (bytes32)</p>
                 <p className="mt-2 break-all font-[var(--font-mono)] text-xs text-[var(--accent)]">
                   {fileHash}
                 </p>
                 <p className="mt-2 text-xs text-stone-500">
                   Short format: {truncateHash(fileHash)}
+                </p>
+                <p className="mt-2 text-xs text-stone-500">
+                  Local action only: this clears the selected file in this app.
+                  No on-chain records are deleted.
                 </p>
               </div>
             ) : null}

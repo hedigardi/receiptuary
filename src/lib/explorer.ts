@@ -1,24 +1,17 @@
 const EXPLORER_BY_CHAIN_ID: Record<number, string> = {
   8453: "https://basescan.org",
   84532: "https://sepolia.basescan.org",
-  137: "https://polygonscan.com",
-  80002: "https://amoy.polygonscan.com",
 };
 
 const CHAIN_ID_BY_NETWORK_NAME: Record<string, number> = {
   base: 8453,
   basesepolia: 84532,
   base_sepolia: 84532,
-  polygon: 137,
-  polygonamoy: 80002,
-  polygon_amoy: 80002,
 };
 
 const LABEL_BY_CHAIN_ID: Record<number, string> = {
   8453: "Base",
   84532: "Base Sepolia",
-  137: "Polygon",
-  80002: "Polygon Amoy",
   31337: "Hardhat Local",
 };
 
@@ -62,6 +55,20 @@ export function getExplorerSearchUrl(
   return `${baseUrl}/search?f=0&q=${encodeURIComponent(query)}`;
 }
 
+export function getExplorerReceiptEventLogsUrl(
+  chainId: number,
+  contractAddress: string,
+): string | null {
+  const baseUrl = EXPLORER_BY_CHAIN_ID[chainId];
+  if (!baseUrl || !contractAddress) {
+    return null;
+  }
+
+  // BaseScan Sepolia returns 404 for /logs deep links, so route to the
+  // contract events tab which consistently loads across supported chains.
+  return `${baseUrl}/address/${contractAddress}#events`;
+}
+
 export function getChainIdFromNetworkName(networkName: string): number | null {
   if (!networkName) {
     return null;
@@ -81,16 +88,8 @@ export function getNetworkBadge(networkName: string): {
   if (normalized.startsWith("base")) {
     return {
       label: normalized,
-      dotClass: "bg-blue-500",
-      badgeClass: "bg-blue-50 text-blue-800 border-blue-200",
-    };
-  }
-
-  if (normalized.startsWith("polygon")) {
-    return {
-      label: normalized,
-      dotClass: "bg-teal-500",
-      badgeClass: "bg-teal-50 text-teal-800 border-teal-200",
+      dotClass: "bg-emerald-600",
+      badgeClass: "bg-emerald-50 text-emerald-900 border-emerald-300",
     };
   }
 

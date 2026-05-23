@@ -8,15 +8,6 @@ const deployerKey = process.env.DEPLOYER_PRIVATE_KEY;
 const accounts = deployerKey ? [deployerKey] : [];
 const networks: Record<string, unknown> = {};
 
-if (process.env.POLYGON_AMOY_RPC_URL) {
-  networks.polygonAmoy = {
-    type: "http",
-    chainType: "l1",
-    url: process.env.POLYGON_AMOY_RPC_URL,
-    accounts,
-  };
-}
-
 if (process.env.BASE_SEPOLIA_RPC_URL) {
   networks.baseSepolia = {
     type: "http",

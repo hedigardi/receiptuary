@@ -9,8 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "contract:compile": "hardhat compile",
-    "contract:deploy:base": "hardhat run scripts/deploy.ts --network baseSepolia",
-    "contract:deploy:polygon": "hardhat run scripts/deploy.ts --network polygonAmoy"
+    "contract:deploy:base": "hardhat run scripts/deploy.ts --network baseSepolia"
   },
   "dependencies": {
     "@biconomy/account": "^4.5.7",

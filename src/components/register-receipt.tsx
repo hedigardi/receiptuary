@@ -6,8 +6,11 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
-import { BaseError } from "viem";
 import { getExplorerTxUrl } from "@/lib/explorer";
+import {
+  getTechnicalErrorDetails,
+  toUserFriendlyError,
+} from "@/lib/user-friendly-errors";
 import {
   CONTRACT_ADDRESS,
   IS_CONTRACT_CONFIGURED,
@@ -29,6 +32,8 @@ export function RegisterReceipt({ fileHash }: Props) {
     hash: txHash,
   });
   const explorerUrl = txHash ? getExplorerTxUrl(chainId, txHash) : null;
+  const friendlyError = error ? toUserFriendlyError(error, "register") : null;
+  const technicalError = error ? getTechnicalErrorDetails(error) : null;
 
   const submitDisabled =
     !IS_CONTRACT_CONFIGURED ||
@@ -140,9 +145,15 @@ export function RegisterReceipt({ fileHash }: Props) {
         </div>
       ) : null}
       {error ? (
-        <p className="text-sm text-[var(--warn)]">
-          {error instanceof BaseError ? error.shortMessage : error.message}
-        </p>
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+          <p>{friendlyError}</p>
+          {technicalError ? (
+            <details className="mt-2 text-xs text-amber-900/80">
+              <summary className="cursor-pointer">Technical details</summary>
+              <p className="mt-1 break-all">{technicalError}</p>
+            </details>
+          ) : null}
+        </div>
       ) : null}
     </form>
   );

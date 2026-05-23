@@ -12,6 +12,7 @@ import {
   BICONOMY_PAYMASTER_API_KEY,
   IS_AA_ENABLED,
 } from "@/lib/aa";
+import { toUserFriendlyError } from "@/lib/user-friendly-errors";
 
 type Eip1193Provider = {
   request: (request: {
@@ -57,7 +58,7 @@ export function useSmartAccount() {
       const getProvider =
         embeddedWallet.getEthereumProvider ?? embeddedWallet.getProvider;
       if (!getProvider) {
-        setError("Embedded wallet saknar provider.");
+        setError("Could not access the embedded wallet provider.");
         return;
       }
 
@@ -80,11 +81,7 @@ export function useSmartAccount() {
         setSmartAccount(accountClient);
         setSmartAccountAddress(address);
       } catch (caught) {
-        const message =
-          caught instanceof Error
-            ? caught.message
-            : "Kunde inte initiera smart account.";
-        setError(message);
+        setError(toUserFriendlyError(caught, "smartAccount"));
       } finally {
         setIsLoading(false);
       }

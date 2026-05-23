@@ -1,8 +1,15 @@
 "use client";
 
-import { BaseError } from "viem";
 import { useChainId, useReadContract } from "wagmi";
-import { getExplorerAddressUrl, getExplorerSearchUrl } from "@/lib/explorer";
+import {
+  getExplorerAddressUrl,
+  getExplorerReceiptEventLogsUrl,
+  getExplorerSearchUrl,
+} from "@/lib/explorer";
+import {
+  getTechnicalErrorDetails,
+  toUserFriendlyError,
+} from "@/lib/user-friendly-errors";
 import {
   CONTRACT_ADDRESS,
   CONTRACT_ADDRESS_SOURCE,
@@ -47,8 +54,8 @@ export function VerifyReceipt({ fileHash }: Props) {
   }
 
   if (error) {
-    const readErrorMessage =
-      error instanceof BaseError ? error.shortMessage : error.message;
+    const readErrorMessage = getTechnicalErrorDetails(error);
+    const friendlyReadError = toUserFriendlyError(error, "verify");
     // Only flag hardhat when there is no real env address at all
     const isNoContract = CONTRACT_ADDRESS_SOURCE === "none";
     const isHardhatOnly =
@@ -71,15 +78,13 @@ export function VerifyReceipt({ fileHash }: Props) {
             your wallet network to Base Sepolia and try again.
           </p>
         ) : (
-          <p>
-            This usually means the selected wallet network does not match the
-            contract network, or there is no contract at this address.
-          </p>
+          <p>{friendlyReadError}</p>
         )}
         {readErrorMessage ? (
-          <p className="text-xs break-all opacity-80">
-            Details: {readErrorMessage}
-          </p>
+          <details className="text-xs opacity-80">
+            <summary className="cursor-pointer">Technical details</summary>
+            <p className="mt-1 break-all">{readErrorMessage}</p>
+          </details>
         ) : null}
       </div>
     );
@@ -95,7 +100,10 @@ export function VerifyReceipt({ fileHash }: Props) {
     ];
 
   const contractExplorerUrl = getExplorerAddressUrl(chainId, CONTRACT_ADDRESS);
-  const eventSearchUrl = getExplorerSearchUrl(chainId, fileHash);
+  const eventSearchUrl = getExplorerReceiptEventLogsUrl(
+    chainId,
+    CONTRACT_ADDRESS,
+  );
   const issuerSearchUrl = getExplorerSearchUrl(chainId, registeredBy);
 
   return (
@@ -143,7 +151,7 @@ export function VerifyReceipt({ fileHash }: Props) {
                 rel="noopener noreferrer"
                 className="rounded-lg border border-emerald-300 px-3 py-1 text-xs font-semibold text-emerald-900"
               >
-                Search events by hash
+                Open contract events
               </a>
             ) : null}
             {issuerSearchUrl ? (
@@ -158,8 +166,8 @@ export function VerifyReceipt({ fileHash }: Props) {
             ) : null}
           </div>
           <p className="text-xs text-emerald-800/80">
-            Tip: Explorer links open public hash/address searches and show
-            matching transactions, logs, and contract data.
+            Tip: Open Contract events, then use BaseScan's event filter/search
+            to find this hash in topics.
           </p>
         </div>
       ) : (
