@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fbf8f3;
+  --foreground: #1f1f1f;
+  --card: #fffdf9;
+  --card-border: #dfd3bf;
+  --accent: #03624c;
+  --accent-soft: #ddf0ea;
+  --warn: #9f2c17;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body), sans-serif;
+  background-image:
+    radial-gradient(circle at 10% 10%, #f7e7cf 0%, transparent 35%),
+    radial-gradient(circle at 90% 10%, #dcebdd 0%, transparent 40%),
+    linear-gradient(180deg, #f7f2e8 0%, #fcfaf6 40%, #f5eee1 100%);
+}
+
+.grid-overlay {
+  background-image:
+    linear-gradient(rgba(40, 33, 23, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(40, 33, 23, 0.06) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
