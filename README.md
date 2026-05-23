@@ -1,45 +1,45 @@
 # Receiptuary
 
-Receiptuary ar en minimalistisk dApp for att verifiera digitala kvitton.
-Appen hashar PDF-filer lokalt i webblasaren (SHA-256), registrerar hashen pa blockkedjan och later kopare verifiera om filen matchar den forankrade originalhashen.
+Receiptuary is a minimalist dApp for verifying digital receipts.
+The app hashes PDF files locally in the browser (SHA-256), registers the hash on-chain, and lets buyers verify whether a file matches the anchored original hash.
 
-## Funktioner
+## Features
 
-- Lokal hashning i klienten med Web Crypto API (ingen fil skickas till server)
-- Tva lagen i UI:
-  - Utfardare: registrerar kvittohash via `registerReceipt`
-  - Verifierare: kontrollerar hash via `getReceipt`
-- Wallet-anslutning med Wagmi + RainbowKit
-- Valbart gasless-lage med Privy + Biconomy (AA)
-- Solidity-kontrakt med gas-effektiv `bytes32`-lagring
+- Client-side hashing with the Web Crypto API (no file is sent to any server)
+- Two roles in the UI:
+  - Issuer: registers a receipt hash via `registerReceipt`
+  - Verifier: checks a hash via `getReceipt`
+- Wallet connection with Wagmi + RainbowKit
+- Optional gasless mode with Privy + Biconomy (AA)
+- Solidity contract with gas-efficient `bytes32` storage
 
-## Teknisk stack
+## Tech stack
 
 - Next.js (App Router) + TypeScript + Tailwind
 - Wagmi + Viem + RainbowKit
 - Solidity + Hardhat
-- React Dropzone for PDF-upload
+- React Dropzone for PDF upload
 
-## Kom igang
+## Getting started
 
-1. Installera beroenden:
+1. Install dependencies:
 
 ```bash
 npm install
 ```
 
-2. Skapa env-fil:
+2. Create an env file:
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
-3. Fyll i minst:
+3. Fill in at minimum:
 
 - `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`
-- `NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS` (valfritt om du kor deploy-sync)
+- `NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS` (optional if you use deploy-sync)
 
-Valfritt for gasless AA:
+Optional for gasless AA:
 
 - `NEXT_PUBLIC_ENABLE_AA=true`
 - `NEXT_PUBLIC_PRIVY_APP_ID`
@@ -47,51 +47,51 @@ Valfritt for gasless AA:
 - `NEXT_PUBLIC_BICONOMY_PAYMASTER_API_KEY`
 - `NEXT_PUBLIC_AA_CHAIN_ID`
 
-4. Starta utvecklingsserver:
+4. Start the development server:
 
 ```bash
 npm run dev
 ```
 
-## Smart kontrakt
+## Smart contract
 
-Kontraktet finns i `contracts/Receiptuary.sol`.
+The contract is located at `contracts/Receiptuary.sol`.
 
-Kompilera:
+Compile:
 
 ```bash
 npm run contract:compile
 ```
 
-Deploy (Base Sepolia):
+Deploy to Base Sepolia:
 
 ```bash
 npm run contract:deploy:base
 ```
 
-Deploy (Polygon Amoy):
+Deploy to Polygon Amoy:
 
 ```bash
 npm run contract:deploy:polygon
 ```
 
-Efter deploy uppdateras frontend automatiskt med adress + ABI i `src/lib/generated/receiptuary.generated.ts`.
-Du kan fortfarande overskriva adressen via `NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS`.
+After a deploy, the frontend is automatically updated with the address and ABI in `src/lib/generated/receiptuary.generated.ts`.
+You can still override the address via `NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS`.
 
-## Anvandarflode
+## User flow
 
-1. Utfardaren laddar upp en PDF i appen
-2. Appen hashar filen lokalt till en SHA-256 `bytes32`
-3. Hash + metadata skrivs till blockkedjan
-4. Koparen laddar upp samma fil for verifiering
-5. Appen hashar pa nytt och jamfor med on-chain data
+1. The issuer uploads a PDF in the app
+2. The app hashes the file locally to a SHA-256 `bytes32`
+3. The hash and metadata are written to the blockchain
+4. The buyer uploads the same file for verification
+5. The app re-hashes and compares with the on-chain data
 
-## AA/Gasless
+## AA / Gasless
 
-Projektet har ett aktivt Account Abstraction-lage (Privy + Biconomy) for:
+The project has an optional Account Abstraction mode (Privy + Biconomy) that enables:
 
-- Google/e-post-inloggning
-- Inbaddad smart wallet
-- Sponsrad gas for registreringstransaktioner
+- Google / email login
+- Embedded smart wallet
+- Sponsored gas for registration transactions
 
-Detta kor pa samma kontrakt och samma verifieringsmodell som standardlaget.
+This runs on the same contract and the same verification model as the standard mode.
