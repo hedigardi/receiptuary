@@ -1,65 +1,73 @@
 # Receiptuary
 
-Receiptuary is a minimalist dApp for verifying digital receipts.
-The app hashes PDF files locally in the browser (SHA-256), registers the hash on-chain, and lets buyers verify whether a file matches the anchored original hash.
+Receiptuary is a dApp for receipt authenticity.
+It hashes PDF receipts locally in the browser with SHA-256, anchors the hash on-chain, and lets anyone verify whether a file matches a registered record.
+
+## Current product state
+
+- Primary network: Base mainnet
+- Paid registration: enabled (token approval + registration)
+- Payment model: fixed fee per registration (configured via env)
+- Upload format: PDF only
 
 ## Features
 
-- Client-side hashing with the Web Crypto API (no file is sent to any server)
-- Paid registration flow (token approval + on-chain registration)
-- Two roles in the UI:
-  - Issuer: registers a receipt hash via `registerReceipt`
-  - Verifier: checks a hash via `getReceipt`
-- Wallet connection with Wagmi + RainbowKit
-- Optional gasless mode with Privy + Biconomy (AA)
-- Solidity contract with gas-efficient `bytes32` storage
+- Local hashing in browser (no file upload to backend)
+- Issuer mode (register receipt hash on-chain)
+- Verifier mode (verify hash against on-chain record)
+- Paid flow with explicit user consent
+- Wallet integration via Wagmi + RainbowKit
+- Optional AA mode (Privy + Biconomy)
+- SEO routes (`robots.txt`, `sitemap.xml`)
+- Netlify-ready deployment config
 
 ## Tech stack
 
-- Next.js (App Router) + TypeScript + Tailwind
+- Next.js App Router + TypeScript + Tailwind
 - Wagmi + Viem + RainbowKit
 - Solidity + Hardhat
-- React Dropzone for PDF upload
+- React Dropzone
 
-## Getting started
+## Local setup
 
-1. Install dependencies:
+1. Install dependencies
 
 ```bash
 npm install
 ```
 
-2. Create an env file:
+2. Create env file
+
+macOS/Linux:
 
 ```bash
 cp .env.example .env
 ```
 
-3. Fill in at minimum:
+Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+3. Fill required frontend env vars
 
 - `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`
-- `NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS` (optional if you use deploy-sync)
+- `NEXT_PUBLIC_SITE_URL`
+- `NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS` (can be empty before first deploy)
 - `NEXT_PUBLIC_USDC_TOKEN_ADDRESS`
 - `NEXT_PUBLIC_RECEIPTUARY_FEE_RECIPIENT`
-- `NEXT_PUBLIC_RECEIPTUARY_FEE_AMOUNT` (example: `1000000` = 1.00 USDC with 6 decimals)
+- `NEXT_PUBLIC_RECEIPTUARY_FEE_AMOUNT` (example `1000000` for 1.00 USDC with 6 decimals)
 
-Optional for gasless AA:
-
-- `NEXT_PUBLIC_ENABLE_AA=true`
-- `NEXT_PUBLIC_PRIVY_APP_ID`
-- `NEXT_PUBLIC_BICONOMY_BUNDLER_URL`
-- `NEXT_PUBLIC_BICONOMY_PAYMASTER_API_KEY`
-- `NEXT_PUBLIC_AA_CHAIN_ID`
-
-4. Start the development server:
+4. Start app
 
 ```bash
 npm run dev
 ```
 
-## Smart contract
+## Contract and deployment
 
-The contract is located at `contracts/Receiptuary.sol`.
+Contract: `contracts/Receiptuary.sol`
 
 Compile:
 
@@ -67,55 +75,75 @@ Compile:
 npm run contract:compile
 ```
 
-Deploy to Base Sepolia:
-
-```bash
-npm run contract:deploy:base
-```
-
-Deploy to Base Mainnet:
-
-```bash
-npm run contract:deploy:base:mainnet
-```
-
-Run a production env preflight check before deploying:
+Run production preflight (recommended before deploy):
 
 ```bash
 npm run preflight:prod
 ```
 
+Deploy commands:
+
+- Base Sepolia: `npm run contract:deploy:base:sepolia`
+- Base Mainnet: `npm run contract:deploy:base:mainnet`
+
+Legacy alias:
+
+- `npm run contract:deploy:base` (same as Base Sepolia)
+
 Required deploy env vars:
 
+- `DEPLOYER_PRIVATE_KEY`
+- `BASE_MAINNET_RPC_URL` (for mainnet deploy)
 - `USDC_TOKEN_ADDRESS`
 - `RECEIPTUARY_FEE_RECIPIENT`
 - `RECEIPTUARY_FEE_AMOUNT`
 
-After a deploy, the frontend is automatically updated with the address and ABI in `src/lib/generated/receiptuary.generated.ts`.
-You can still override the address via `NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS`.
+After deploy, address + ABI are auto-synced to:
 
-## User flow
+- `src/lib/generated/receiptuary.generated.ts`
 
-1. The issuer uploads a PDF in the app
-2. The app hashes the file locally to a SHA-256 `bytes32`
-3. The issuer approves the fee token spend from their wallet
-4. The hash and metadata are written to the blockchain
-5. The fee token transfer is executed to the configured recipient
-6. The buyer uploads the same file for verification
-7. The app re-hashes and compares with the on-chain data
+You can override contract address in frontend via:
 
-## AA / Gasless
+- `NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS`
 
-The project has an optional Account Abstraction mode (Privy + Biconomy) that enables:
+## User flows
 
-- Google / email login
-- Embedded smart wallet
-- Sponsored gas for registration transactions
+### Issuer flow (paid)
 
-This runs on the same contract and the same verification model as the standard mode.
+1. Upload PDF
+2. Local SHA-256 hash is generated
+3. Approve token spend in wallet
+4. Confirm registration transaction
+5. Fee is transferred to configured recipient
 
-## Production Checklist
+### Verifier flow
 
-For launch readiness, see:
+1. Upload PDF
+2. Local hash is generated
+3. App reads on-chain record
+4. Shows Verified or Unverified with explorer links
 
-- `docs/base-mainnet-production-checklist.md`
+## AA / Gasless notes
+
+AA mode is optional and still supported for non-paid registration paths.
+
+When paid registration is enabled, issuer registration is currently wallet-mode only (approval + paid register).
+
+AA env vars:
+
+- `NEXT_PUBLIC_ENABLE_AA=true`
+- `NEXT_PUBLIC_PRIVY_APP_ID`
+- `NEXT_PUBLIC_BICONOMY_BUNDLER_URL`
+- `NEXT_PUBLIC_BICONOMY_PAYMASTER_API_KEY`
+- `NEXT_PUBLIC_AA_CHAIN_ID`
+
+## SEO
+
+Implemented SEO pieces:
+
+- Rich metadata in `src/app/layout.tsx`
+- `robots.txt` route: `src/app/robots.ts`
+- `sitemap.xml` route: `src/app/sitemap.ts`
+- Web manifest: `public/site.webmanifest`
+
+Set `NEXT_PUBLIC_SITE_URL` to your real production domain for canonical, sitemap host and robots host.

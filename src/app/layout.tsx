@@ -3,6 +3,11 @@ import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://receiptuary.com";
+const siteName = "Receiptuary";
+const siteDescription =
+  "Verify digital receipts with local SHA-256 hashing and blockchain anchoring on Base.";
+
 const displayFont = Space_Grotesk({
   variable: "--font-display",
   subsets: ["latin"],
@@ -20,9 +25,54 @@ const bodyFont = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Receiptuary",
-  description:
-    "Verify digital receipts with local SHA-256 hashing and blockchain anchoring.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: `${siteName} | On-Chain Receipt Verification`,
+    template: `%s | ${siteName}`,
+  },
+  description: siteDescription,
+  applicationName: siteName,
+  keywords: [
+    "receipt verification",
+    "blockchain receipts",
+    "on-chain proof",
+    "sha-256",
+    "base network",
+    "document authenticity",
+  ],
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName,
+    title: `${siteName} | On-Chain Receipt Verification`,
+    description: siteDescription,
+    images: [
+      {
+        url: "/logo.png",
+        alt: "Receiptuary logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${siteName} | On-Chain Receipt Verification`,
+    description: siteDescription,
+    images: ["/logo.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   icons: {
     icon: [
       { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },

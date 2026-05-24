@@ -294,6 +294,8 @@ export function ReceiptuaryApp() {
                   !!chain &&
                   (!authenticationStatus ||
                     authenticationStatus === "authenticated");
+                const isWalletOnWrongChain =
+                  !!chain && !!deployedChainId && chain.id !== deployedChainId;
 
                 if (!connected) {
                   return (
@@ -321,7 +323,7 @@ export function ReceiptuaryApp() {
                   );
                 }
 
-                if (chain.unsupported) {
+                if (isWalletOnWrongChain) {
                   return (
                     <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
                       <span className="inline-flex max-w-full items-center rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
