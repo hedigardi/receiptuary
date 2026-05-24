@@ -497,7 +497,7 @@ export function ReceiptuaryApp() {
                     Issuer: Register receipt
                   </p>
                 </div>
-                <span className="rounded-full border border-emerald-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                <span className="shrink-0 whitespace-nowrap rounded-full border border-emerald-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 sm:px-2 sm:text-[11px]">
                   {IS_PAID_REGISTRATION_ENABLED
                     ? "Paid action"
                     : "Currently free"}
@@ -546,7 +546,7 @@ export function ReceiptuaryApp() {
                     Verifier: Check receipt
                   </p>
                 </div>
-                <span className="rounded-full border border-sky-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-sky-800">
+                <span className="shrink-0 whitespace-nowrap rounded-full border border-sky-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-sky-800 sm:px-2 sm:text-[11px]">
                   Always free
                 </span>
               </div>
@@ -604,7 +604,7 @@ export function ReceiptuaryApp() {
                   <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
                     {step.icon}
                   </span>
-                  <span className="rounded-full border border-emerald-200 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                  <span className="shrink-0 whitespace-nowrap rounded-full border border-emerald-200 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 sm:px-2 sm:text-[11px]">
                     Step {index + 1}
                   </span>
                 </div>
