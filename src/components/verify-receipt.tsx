@@ -2,6 +2,8 @@
 
 import { useChainId, useReadContract } from "wagmi";
 import {
+  getChainIdFromNetworkName,
+  getChainLabel,
   getExplorerAddressUrl,
   getExplorerReceiptEventLogsUrl,
   getExplorerSearchUrl,
@@ -12,7 +14,6 @@ import {
 } from "@/lib/user-friendly-errors";
 import {
   CONTRACT_ADDRESS,
-  CONTRACT_ADDRESS_SOURCE,
   DEPLOYED_NETWORK_NAME,
   IS_CONTRACT_CONFIGURED,
   RECEIPTUARY_ABI,
@@ -26,6 +27,10 @@ type ReceiptTuple = readonly [string, string, bigint, `0x${string}`, boolean];
 
 export function VerifyReceipt({ fileHash }: Props) {
   const chainId = useChainId();
+  const deployedChainId = getChainIdFromNetworkName(DEPLOYED_NETWORK_NAME);
+  const deployedChainLabel = deployedChainId
+    ? getChainLabel(deployedChainId)
+    : "the required network";
   const { data, isLoading, error } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: RECEIPTUARY_ABI,
@@ -56,26 +61,25 @@ export function VerifyReceipt({ fileHash }: Props) {
   if (error) {
     const readErrorMessage = getTechnicalErrorDetails(error);
     const friendlyReadError = toUserFriendlyError(error, "verify");
-    // Only flag hardhat when there is no real env address at all
-    const isNoContract = CONTRACT_ADDRESS_SOURCE === "none";
-    const isHardhatOnly =
-      CONTRACT_ADDRESS_SOURCE !== "env" && DEPLOYED_NETWORK_NAME === "hardhat";
-    const isWrongNetwork =
-      CONTRACT_ADDRESS_SOURCE === "env" && !isNoContract && !isHardhatOnly;
+    const isWalletOnWrongChain =
+      !!deployedChainId && chainId !== deployedChainId;
+    const isContractReadMismatch = !isWalletOnWrongChain;
 
     return (
       <div className="rounded-2xl border border-red-300 bg-red-50 p-5 text-sm text-red-700 space-y-2">
         <p className="font-semibold">Failed to read from the blockchain.</p>
-        {isNoContract || isHardhatOnly ? (
+        {isWalletOnWrongChain ? (
           <p>
-            Your app is currently pointing to a local Hardhat deploy. Set
-            NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS to your deployed testnet
-            contract and switch your wallet to the same network.
+            The contract is deployed on <strong>{deployedChainLabel}</strong>.
+            Switch your wallet network to {deployedChainLabel} and try again.
           </p>
-        ) : isWrongNetwork ? (
+        ) : isContractReadMismatch ? (
           <p>
-            The contract is deployed on <strong>Base Sepolia</strong>. Switch
-            your wallet network to Base Sepolia and try again.
+            Your wallet is already on <strong>{deployedChainLabel}</strong>, but
+            the contract at this address did not return data.
+            <br />
+            This usually means the contract address is wrong, the deployment is
+            not live yet, or the generated frontend config is out of sync.
           </p>
         ) : (
           <p>{friendlyReadError}</p>

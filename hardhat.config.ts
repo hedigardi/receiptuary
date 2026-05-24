@@ -17,6 +17,15 @@ if (process.env.BASE_SEPOLIA_RPC_URL) {
   };
 }
 
+if (process.env.BASE_MAINNET_RPC_URL) {
+  networks.base = {
+    type: "http",
+    chainType: "l1",
+    url: process.env.BASE_MAINNET_RPC_URL,
+    accounts,
+  };
+}
+
 const config = defineConfig({
   plugins: [hardhatEthers],
   solidity: {

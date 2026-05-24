@@ -6,6 +6,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { PaymasterMode } from "@biconomy/account";
 import { AA_CHAIN_ID } from "@/lib/aa";
 import { getExplorerTxUrl } from "@/lib/explorer";
+import { IS_PAID_REGISTRATION_ENABLED } from "@/lib/payment";
 import {
   getTechnicalErrorDetails,
   toUserFriendlyError,
@@ -31,6 +32,15 @@ export function GaslessRegister({ fileHash }: Props) {
 
   const abiInterface = useMemo(() => new Interface(RECEIPTUARY_ABI), []);
   const explorerUrl = txHash ? getExplorerTxUrl(AA_CHAIN_ID, txHash) : null;
+
+  if (IS_PAID_REGISTRATION_ENABLED) {
+    return (
+      <div className="rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm text-amber-900">
+        Paid registration is currently supported in Wallet mode only. Switch to
+        Wallet to approve payment and register receipts.
+      </div>
+    );
+  }
 
   const handleRegister = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
