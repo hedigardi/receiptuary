@@ -6,6 +6,7 @@ The app hashes PDF files locally in the browser (SHA-256), registers the hash on
 ## Features
 
 - Client-side hashing with the Web Crypto API (no file is sent to any server)
+- Paid registration flow (token approval + on-chain registration)
 - Two roles in the UI:
   - Issuer: registers a receipt hash via `registerReceipt`
   - Verifier: checks a hash via `getReceipt`
@@ -38,6 +39,9 @@ cp .env.example .env
 
 - `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`
 - `NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS` (optional if you use deploy-sync)
+- `NEXT_PUBLIC_USDC_TOKEN_ADDRESS`
+- `NEXT_PUBLIC_RECEIPTUARY_FEE_RECIPIENT`
+- `NEXT_PUBLIC_RECEIPTUARY_FEE_AMOUNT` (example: `1000000` = 1.00 USDC with 6 decimals)
 
 Optional for gasless AA:
 
@@ -69,6 +73,24 @@ Deploy to Base Sepolia:
 npm run contract:deploy:base
 ```
 
+Deploy to Base Mainnet:
+
+```bash
+npm run contract:deploy:base:mainnet
+```
+
+Run a production env preflight check before deploying:
+
+```bash
+npm run preflight:prod
+```
+
+Required deploy env vars:
+
+- `USDC_TOKEN_ADDRESS`
+- `RECEIPTUARY_FEE_RECIPIENT`
+- `RECEIPTUARY_FEE_AMOUNT`
+
 After a deploy, the frontend is automatically updated with the address and ABI in `src/lib/generated/receiptuary.generated.ts`.
 You can still override the address via `NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS`.
 
@@ -76,9 +98,11 @@ You can still override the address via `NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS
 
 1. The issuer uploads a PDF in the app
 2. The app hashes the file locally to a SHA-256 `bytes32`
-3. The hash and metadata are written to the blockchain
-4. The buyer uploads the same file for verification
-5. The app re-hashes and compares with the on-chain data
+3. The issuer approves the fee token spend from their wallet
+4. The hash and metadata are written to the blockchain
+5. The fee token transfer is executed to the configured recipient
+6. The buyer uploads the same file for verification
+7. The app re-hashes and compares with the on-chain data
 
 ## AA / Gasless
 
@@ -89,3 +113,9 @@ The project has an optional Account Abstraction mode (Privy + Biconomy) that ena
 - Sponsored gas for registration transactions
 
 This runs on the same contract and the same verification model as the standard mode.
+
+## Production Checklist
+
+For launch readiness, see:
+
+- `docs/base-mainnet-production-checklist.md`

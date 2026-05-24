@@ -15,10 +15,14 @@ import {
 } from "@/lib/explorer";
 import {
   CONTRACT_ADDRESS,
-  CONTRACT_ADDRESS_SOURCE,
   DEPLOYED_NETWORK_NAME,
   IS_CONTRACT_CONFIGURED,
 } from "@/lib/receiptuary";
+import {
+  IS_PAID_REGISTRATION_ENABLED,
+  PAYMENT_FEE_DISPLAY,
+  PAYMENT_TOKEN_SYMBOL_FALLBACK,
+} from "@/lib/payment";
 import { truncateHash } from "@/lib/crypto";
 
 type Mode = "issuer" | "verifier";
@@ -35,6 +39,9 @@ export function ReceiptuaryApp() {
   const [fileHash, setFileHash] = useState<`0x${string}` | null>(null);
   const networkBadge = getNetworkBadge(DEPLOYED_NETWORK_NAME);
   const deployedChainId = getChainIdFromNetworkName(DEPLOYED_NETWORK_NAME);
+  const deployedChainLabel = deployedChainId
+    ? getChainLabel(deployedChainId)
+    : "the required network";
   const flowSteps =
     mode === "issuer"
       ? [
@@ -63,7 +70,7 @@ export function ReceiptuaryApp() {
           {
             title: "Connect and sign",
             description:
-              "Enter issuer details, then approve the registration from your wallet.",
+              "Enter issuer details, approve token spending, then confirm registration in your wallet.",
             icon: (
               <svg
                 aria-hidden="true"
@@ -84,7 +91,7 @@ export function ReceiptuaryApp() {
           {
             title: "Proof on-chain",
             description:
-              "The hash is anchored on-chain and can be verified later by anyone.",
+              "Your receipt hash is anchored on-chain after payment and can be verified later by anyone.",
             icon: (
               <svg
                 aria-hidden="true"
@@ -265,6 +272,12 @@ export function ReceiptuaryApp() {
               </button>
             ) : null}
 
+            {IS_PAID_REGISTRATION_ENABLED ? (
+              <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900">
+                {PAYMENT_FEE_DISPLAY} {PAYMENT_TOKEN_SYMBOL_FALLBACK} / receipt
+              </span>
+            ) : null}
+
             <ConnectButton.Custom>
               {({
                 account,
@@ -312,7 +325,7 @@ export function ReceiptuaryApp() {
                   return (
                     <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
                       <span className="inline-flex max-w-full items-center rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
-                        Switch to Base Sepolia in your wallet
+                        Switch to {deployedChainLabel} in your wallet
                       </span>
                       <button
                         type="button"
@@ -387,13 +400,10 @@ export function ReceiptuaryApp() {
                   Active chain ID: {deployedChainId ?? "unknown"}
                 </p>
                 <p className="mt-1">
-                  Recommended verification: {getChainLabel(84532)}
+                  Recommended verification: {deployedChainLabel}
                 </p>
                 <p className="mt-1 break-all font-[var(--font-mono)]">
                   Contract: {CONTRACT_ADDRESS}
-                </p>
-                <p className="mt-1">
-                  Address source: {CONTRACT_ADDRESS_SOURCE}
                 </p>
               </div>
             ) : null}
@@ -507,6 +517,13 @@ export function ReceiptuaryApp() {
                     Gasless (AA)
                   </button>
                 </div>
+              </div>
+            ) : null}
+
+            {mode === "issuer" && IS_PAID_REGISTRATION_ENABLED ? (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+                Paid mode is active. Users approve token payment first, then
+                complete receipt registration.
               </div>
             ) : null}
 

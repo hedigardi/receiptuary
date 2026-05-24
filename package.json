@@ -8,8 +8,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "preflight:prod": "node scripts/preflight-production.mjs",
     "contract:compile": "hardhat compile",
-    "contract:deploy:base": "hardhat run scripts/deploy.ts --network baseSepolia"
+    "contract:deploy:base": "hardhat run scripts/deploy.ts --network baseSepolia",
+    "contract:deploy:base:sepolia": "hardhat run scripts/deploy.ts --network baseSepolia",
+    "contract:deploy:base:mainnet": "hardhat run scripts/deploy.ts --network base"
   },
   "dependencies": {
     "@biconomy/account": "^4.5.7",

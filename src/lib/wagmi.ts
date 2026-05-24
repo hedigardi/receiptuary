@@ -12,7 +12,9 @@ import {
   walletConnectWallet,
 } from "@rainbow-me/rainbowkit/wallets";
 import { createConfig, http } from "wagmi";
-import { baseSepolia } from "wagmi/chains";
+import { base, baseSepolia } from "wagmi/chains";
+import { normalizeNetworkName } from "@/lib/explorer";
+import { DEPLOYED_NETWORK_NAME } from "@/lib/receiptuary";
 
 const configuredProjectId =
   process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID?.trim();
@@ -22,7 +24,12 @@ const projectId =
     ? configuredProjectId
     : null;
 
-export const supportedChains = [baseSepolia] as const;
+const normalizedNetwork = normalizeNetworkName(
+  DEPLOYED_NETWORK_NAME,
+).toLowerCase();
+const targetChain = normalizedNetwork === "base" ? base : baseSepolia;
+
+export const supportedChains = [targetChain] as const;
 
 const connectors = projectId
   ? connectorsForWallets(
@@ -56,6 +63,7 @@ export const wagmiConfig = createConfig({
   chains: supportedChains,
   connectors,
   transports: {
+    [base.id]: http(),
     [baseSepolia.id]: http(),
   },
   ssr: true,

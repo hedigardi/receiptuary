@@ -77,7 +77,7 @@ export function toUserFriendlyError(
     normalized.includes("unsupported chain") ||
     normalized.includes("switch")
   ) {
-    return "Your wallet is on the wrong network. Switch to Base Sepolia and try again.";
+    return "Your wallet is on the wrong network. Switch to the required network and try again.";
   }
 
   if (

@@ -48,12 +48,6 @@ const configuredAddress =
     ? envContractAddress
     : undefined) ?? (canUseGeneratedAddress ? DEPLOYED_CONTRACT_ADDRESS : "");
 
-export const CONTRACT_ADDRESS_SOURCE = envContractAddress
-  ? "env"
-  : canUseGeneratedAddress
-    ? "generated"
-    : "none";
-
 export const IS_CONTRACT_CONFIGURED =
   !!configuredAddress &&
   configuredAddress.startsWith("0x") &&
