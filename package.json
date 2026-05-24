@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:netlify": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "preflight:prod": "node scripts/preflight-production.mjs",

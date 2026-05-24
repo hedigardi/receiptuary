@@ -35,7 +35,7 @@ type Props = {
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 
 export function RegisterReceipt({ fileHash }: Props) {
-  const { address: userAddress } = useAccount();
+  const { address: userAddress, isConnected } = useAccount();
   const chainId = useChainId();
   const [issuerName, setIssuerName] = useState("");
   const [referenceId, setReferenceId] = useState("");
@@ -141,6 +141,7 @@ export function RegisterReceipt({ fileHash }: Props) {
   const submitDisabled =
     !IS_CONTRACT_CONFIGURED ||
     !IS_PAID_REGISTRATION_ENABLED ||
+    !isConnected ||
     !issuerName.trim() ||
     !fileHash ||
     !acceptedFee ||
@@ -154,6 +155,7 @@ export function RegisterReceipt({ fileHash }: Props) {
   const approveDisabled =
     !IS_PAID_REGISTRATION_ENABLED ||
     !IS_CONTRACT_CONFIGURED ||
+    !isConnected ||
     !fileHash ||
     !acceptedFee ||
     isApprovePending ||
@@ -266,14 +268,20 @@ export function RegisterReceipt({ fileHash }: Props) {
         </span>
       </label>
 
-      {!hasEnoughBalance ? (
+      {!isConnected ? (
+        <p className="text-xs text-amber-700">
+          Connect your wallet to approve payment and register a receipt.
+        </p>
+      ) : null}
+
+      {isConnected && !hasEnoughBalance ? (
         <p className="text-xs text-amber-700">
           Your wallet does not have enough {resolvedSymbol} to pay the service
           fee.
         </p>
       ) : null}
 
-      {!hasEnoughAllowance ? (
+      {isConnected && !hasEnoughAllowance ? (
         <button
           type="button"
           onClick={handleApprove}
@@ -286,11 +294,11 @@ export function RegisterReceipt({ fileHash }: Props) {
               ? "Waiting for approve confirmation"
               : `Approve ${feeDisplay} ${resolvedSymbol}`}
         </button>
-      ) : (
+      ) : isConnected ? (
         <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900">
           Allowance ready. You can complete registration now.
         </p>
-      )}
+      ) : null}
 
       <button
         type="submit"

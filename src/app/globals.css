@@ -8,6 +8,8 @@
   --accent: #03624c;
   --accent-soft: #ddf0ea;
   --warn: #9f2c17;
+  --grid-size: 26px;
+  --grid-line-alpha: 0.06;
 }
 
 @theme inline {
@@ -17,7 +19,13 @@
   --font-mono: var(--font-mono);
 }
 
+html,
 body {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100svh;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-body), sans-serif;
@@ -25,11 +33,52 @@ body {
     radial-gradient(circle at 10% 10%, #f7e7cf 0%, transparent 35%),
     radial-gradient(circle at 90% 10%, #dcebdd 0%, transparent 40%),
     linear-gradient(180deg, #f7f2e8 0%, #fcfaf6 40%, #f5eee1 100%);
+  background-repeat: no-repeat;
+  background-size:
+    140vmax 140vmax,
+    140vmax 140vmax,
+    100% 100%;
+  background-position:
+    left top,
+    right top,
+    center top;
+  background-attachment: fixed, fixed, fixed;
 }
 
 .grid-overlay {
   background-image:
-    linear-gradient(rgba(40, 33, 23, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(40, 33, 23, 0.06) 1px, transparent 1px);
-  background-size: 26px 26px;
+    linear-gradient(
+      rgba(40, 33, 23, var(--grid-line-alpha)) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(40, 33, 23, var(--grid-line-alpha)) 1px,
+      transparent 1px
+    );
+  background-size: var(--grid-size) var(--grid-size);
+  background-repeat: repeat;
+  background-position: center top;
+  background-attachment: fixed;
+}
+
+@media (max-width: 639px) {
+  :root {
+    --grid-size: 32px;
+    --grid-line-alpha: 0.05;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  :root {
+    --grid-size: 28px;
+    --grid-line-alpha: 0.055;
+  }
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --grid-size: 24px;
+    --grid-line-alpha: 0.065;
+  }
 }
