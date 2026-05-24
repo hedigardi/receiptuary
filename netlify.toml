@@ -1,13 +1,11 @@
 [build]
-  command = "npm run build:netlify"
-  publish = ".netlify/output/public"
+  command = "npm run build"
+  publish = "out"
 
 [build.environment]
   NODE_VERSION = "20"
 
 [[plugins]]
-  package = "@netlify/plugin-nextjs"
-
 [[headers]]
   for = "/*"
   [headers.values]
