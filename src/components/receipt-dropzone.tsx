@@ -65,6 +65,11 @@ export function ReceiptDropzone({ onHashed }: Props) {
         </p>
         <p className="mt-2 text-sm text-stone-600">{hint}</p>
       </button>
+      <p className="text-xs text-stone-500">
+        Use the original file exactly as downloaded. Re-saving or modifying the
+        file — even without visible changes — will produce a different
+        fingerprint and cause verification to fail.
+      </p>
       {localError ? (
         <p className="text-sm text-[var(--warn)]">{localError}</p>
       ) : null}

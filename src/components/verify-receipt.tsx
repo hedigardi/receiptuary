@@ -177,11 +177,25 @@ export function VerifyReceipt({ fileHash }: Props) {
       ) : (
         <div className="space-y-2 text-sm">
           <p className="font-[var(--font-display)] text-lg font-semibold">
-            Unverified
+            Not verified
           </p>
           <p>
-            The hash was not found on-chain. The receipt may be untouched but
-            never registered, or it may have been tampered with.
+            This file&rsquo;s fingerprint was not found in the on-chain
+            registry.
+          </p>
+          <p className="text-xs text-red-900/80">Common reasons:</p>
+          <ul className="list-disc pl-4 text-xs text-red-900/80 space-y-1">
+            <li>The receipt has not been registered yet.</li>
+            <li>
+              The file was modified, re-saved, or renamed after registration —
+              even invisible changes (e.g. opened in Adobe Reader and saved)
+              will produce a different fingerprint.
+            </li>
+            <li>The file is a copy and not the original download.</li>
+          </ul>
+          <p className="text-xs text-red-900/80">
+            Try uploading the original, unmodified file exactly as it was
+            downloaded.
           </p>
           {contractExplorerUrl ? (
             <>

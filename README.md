@@ -17,7 +17,6 @@ It hashes PDF receipts locally in the browser with SHA-256, anchors the hash on-
 - Verifier mode (verify hash against on-chain record)
 - Paid flow with explicit user consent
 - Wallet integration via Wagmi + RainbowKit
-- Optional AA mode (Privy + Biconomy)
 - SEO routes (`robots.txt`, `sitemap.xml`)
 - Netlify-ready deployment config
 
@@ -122,20 +121,6 @@ You can override contract address in frontend via:
 2. Local hash is generated
 3. App reads on-chain record
 4. Shows Verified or Unverified with explorer links
-
-## AA / Gasless notes
-
-AA mode is optional and still supported for non-paid registration paths.
-
-When paid registration is enabled, issuer registration is currently wallet-mode only (approval + paid register).
-
-AA env vars:
-
-- `NEXT_PUBLIC_ENABLE_AA=true`
-- `NEXT_PUBLIC_PRIVY_APP_ID`
-- `NEXT_PUBLIC_BICONOMY_BUNDLER_URL`
-- `NEXT_PUBLIC_BICONOMY_PAYMASTER_API_KEY`
-- `NEXT_PUBLIC_AA_CHAIN_ID`
 
 ## SEO
 

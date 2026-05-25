@@ -4,10 +4,8 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ReceiptDropzone } from "@/components/receipt-dropzone";
-import { GaslessRegister } from "@/components/gasless-register";
 import { RegisterReceipt } from "@/components/register-receipt";
 import { VerifyReceipt } from "@/components/verify-receipt";
-import { IS_AA_ENABLED } from "@/lib/aa";
 import {
   getChainIdFromNetworkName,
   getChainLabel,
@@ -30,9 +28,6 @@ const LOGO_SRC = "/logo.png?v=20260524-2";
 
 export function ReceiptuaryApp() {
   const [mode, setMode] = useState<Mode>("verifier");
-  const [registrationMode, setRegistrationMode] = useState<
-    "standard" | "gasless"
-  >("standard");
   const [showChainDetails, setShowChainDetails] = useState(false);
   const [pricingReady, setPricingReady] = useState(false);
   const chainPopoverRef = useRef<HTMLDivElement | null>(null);
@@ -232,7 +227,6 @@ export function ReceiptuaryApp() {
 
   const handleLogoRefresh = useCallback(() => {
     setMode("verifier");
-    setRegistrationMode("standard");
     setShowChainDetails(false);
     setFileName("");
     setFileHash(null);
@@ -242,117 +236,153 @@ export function ReceiptuaryApp() {
     });
   }, []);
 
+  const currentYear = new Date().getFullYear();
+
   return (
-    <main className="grid-overlay flex min-h-[100svh] flex-1 items-center justify-center px-4 py-10 md:px-10">
-      <div className="w-full max-w-4xl rounded-3xl border border-[var(--card-border)] bg-[var(--card)]/95 p-6 shadow-[0_30px_120px_rgba(41,33,18,0.15)] backdrop-blur md:p-8">
-        <header className="flex flex-col gap-4 border-b border-[var(--card-border)] pb-5 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={handleLogoRefresh}
-                aria-label="Refresh page"
-                className="cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
-              >
-                <Image
-                  src={LOGO_SRC}
-                  alt="Receiptuary logo"
-                  width={860}
-                  height={286}
-                  sizes="(max-width: 640px) 185px, (max-width: 768px) 225px, 260px"
-                  className="h-auto w-[185px] sm:w-[225px] md:w-[260px]"
-                  unoptimized
-                  priority
-                />
-              </button>
-            </div>
-            <h1 className="sr-only">Receiptuary - Is it real?</h1>
-          </div>
-
-          <div
-            ref={chainPopoverRef}
-            className="relative flex w-full flex-wrap items-center justify-end gap-2 self-start md:w-auto md:flex-nowrap md:self-auto"
-          >
-            {IS_CONTRACT_CONFIGURED ? (
-              <button
-                type="button"
-                onClick={() => setShowChainDetails((current) => !current)}
-                aria-expanded={showChainDetails}
-                aria-controls="chain-profile-popover"
-                aria-haspopup="dialog"
-                className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${networkBadge.badgeClass} hover:brightness-[0.98]`}
-              >
-                <span
-                  className={`h-2.5 w-2.5 rounded-full ${networkBadge.dotClass}`}
-                />
-                <span className="max-w-[92px] truncate sm:max-w-none">
-                  {networkBadge.label}
-                </span>
-                <span className="hidden text-[11px] opacity-80 sm:inline">
-                  {showChainDetails ? "Hide" : "Details"}
-                </span>
-                <span
-                  aria-hidden="true"
-                  className={`text-[10px] leading-none transition-transform duration-200 ${
-                    showChainDetails ? "rotate-180" : "rotate-0"
-                  }`}
+    <>
+      <main className="grid-overlay flex min-h-[100svh] flex-1 items-center justify-center px-4 py-10 md:px-10">
+        <div className="w-full max-w-4xl rounded-3xl border border-[var(--card-border)] bg-[var(--card)]/95 p-6 shadow-[0_30px_120px_rgba(41,33,18,0.15)] backdrop-blur md:p-8">
+          <header className="flex flex-col gap-4 border-b border-[var(--card-border)] pb-5 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={handleLogoRefresh}
+                  aria-label="Refresh page"
+                  className="cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
                 >
-                  v
-                </span>
-              </button>
-            ) : null}
+                  <Image
+                    src={LOGO_SRC}
+                    alt="Receiptuary logo"
+                    width={860}
+                    height={286}
+                    sizes="(max-width: 640px) 185px, (max-width: 768px) 225px, 260px"
+                    className="h-auto w-[185px] sm:w-[225px] md:w-[260px]"
+                    unoptimized
+                    priority
+                  />
+                </button>
+              </div>
+              <h1 className="sr-only">Receiptuary - Is it real?</h1>
+            </div>
 
-            <ConnectButton.Custom>
-              {({
-                account,
-                chain,
-                mounted,
-                authenticationStatus,
-                openAccountModal,
-                openConnectModal,
-              }) => {
-                const ready = mounted && authenticationStatus !== "loading";
-                const connected =
-                  ready &&
-                  !!account &&
-                  !!chain &&
-                  (!authenticationStatus ||
-                    authenticationStatus === "authenticated");
-                const isWalletOnWrongChain =
-                  !!chain && !!deployedChainId && chain.id !== deployedChainId;
+            <div
+              ref={chainPopoverRef}
+              className="relative flex w-full flex-wrap items-center justify-end gap-2 self-start md:w-auto md:flex-nowrap md:self-auto"
+            >
+              {IS_CONTRACT_CONFIGURED ? (
+                <button
+                  type="button"
+                  onClick={() => setShowChainDetails((current) => !current)}
+                  aria-expanded={showChainDetails}
+                  aria-controls="chain-profile-popover"
+                  aria-haspopup="dialog"
+                  className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${networkBadge.badgeClass} hover:brightness-[0.98]`}
+                >
+                  <span
+                    className={`h-2.5 w-2.5 rounded-full ${networkBadge.dotClass}`}
+                  />
+                  <span className="max-w-[92px] truncate sm:max-w-none">
+                    {networkBadge.label}
+                  </span>
+                  <span className="hidden text-[11px] opacity-80 sm:inline">
+                    {showChainDetails ? "Hide" : "Details"}
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className={`text-[10px] leading-none transition-transform duration-200 ${
+                      showChainDetails ? "rotate-180" : "rotate-0"
+                    }`}
+                  >
+                    v
+                  </span>
+                </button>
+              ) : null}
 
-                if (!connected) {
-                  return (
-                    <button
-                      type="button"
-                      onClick={openConnectModal}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3.5 py-2 text-sm font-semibold text-white transition hover:brightness-95 sm:w-auto"
-                    >
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 24 24"
-                        className="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <rect x="2" y="7" width="20" height="14" rx="3" />
-                        <path d="M16 13h2" />
-                        <path d="M6 7V5a2 2 0 0 1 2-2h8" />
-                      </svg>
-                      <span>Connect Wallet</span>
-                    </button>
-                  );
-                }
+              <ConnectButton.Custom>
+                {({
+                  account,
+                  chain,
+                  mounted,
+                  authenticationStatus,
+                  openAccountModal,
+                  openConnectModal,
+                }) => {
+                  const ready = mounted && authenticationStatus !== "loading";
+                  const connected =
+                    ready &&
+                    !!account &&
+                    !!chain &&
+                    (!authenticationStatus ||
+                      authenticationStatus === "authenticated");
+                  const isWalletOnWrongChain =
+                    !!chain &&
+                    !!deployedChainId &&
+                    chain.id !== deployedChainId;
 
-                if (isWalletOnWrongChain) {
+                  if (!connected) {
+                    return (
+                      <div className="flex w-full flex-col items-end gap-1.5 sm:w-auto">
+                        <button
+                          type="button"
+                          onClick={openConnectModal}
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3.5 py-2 text-sm font-semibold text-white transition hover:brightness-95 sm:w-auto"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            viewBox="0 0 24 24"
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <rect x="2" y="7" width="20" height="14" rx="3" />
+                            <path d="M16 13h2" />
+                            <path d="M6 7V5a2 2 0 0 1 2-2h8" />
+                          </svg>
+                          <span>Connect Wallet</span>
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  if (isWalletOnWrongChain) {
+                    return (
+                      <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
+                        <span className="inline-flex max-w-full items-center rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
+                          Switch to {deployedChainLabel} in your wallet
+                        </span>
+                        <button
+                          type="button"
+                          onClick={openAccountModal}
+                          className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-xl bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white transition hover:brightness-95"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            viewBox="0 0 24 24"
+                            className="h-3.5 w-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <rect x="2" y="7" width="20" height="14" rx="3" />
+                            <path d="M16 13h2" />
+                            <path d="M6 7V5a2 2 0 0 1 2-2h8" />
+                          </svg>
+                          <span className="max-w-[110px] truncate sm:max-w-[140px]">
+                            {account.displayName}
+                          </span>
+                        </button>
+                      </div>
+                    );
+                  }
+
                   return (
                     <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
-                      <span className="inline-flex max-w-full items-center rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
-                        Switch to {deployedChainLabel} in your wallet
-                      </span>
                       <button
                         type="button"
                         onClick={openAccountModal}
@@ -378,14 +408,273 @@ export function ReceiptuaryApp() {
                       </button>
                     </div>
                   );
-                }
+                }}
+              </ConnectButton.Custom>
 
-                return (
-                  <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
+              {IS_CONTRACT_CONFIGURED ? (
+                <div
+                  id="chain-profile-popover"
+                  className={`absolute left-0 right-0 top-full z-20 mt-2 origin-top rounded-2xl border border-[var(--card-border)] bg-white/95 p-4 text-xs text-stone-700 shadow-[0_18px_48px_rgba(41,33,18,0.16)] backdrop-blur transition-all duration-200 md:left-auto md:right-0 md:w-[22rem] md:origin-top-right ${
+                    showChainDetails
+                      ? "translate-y-0 opacity-100"
+                      : "pointer-events-none -translate-y-1 opacity-0"
+                  }`}
+                >
+                  <p className="font-semibold text-stone-800">
+                    Active chain profile
+                  </p>
+                  <p className="mt-2">
+                    Active chain ID: {deployedChainId ?? "unknown"}
+                  </p>
+                  <p className="mt-1">
+                    Recommended verification: {deployedChainLabel}
+                  </p>
+                  <p className="mt-1 break-all font-[var(--font-mono)]">
+                    Contract: {CONTRACT_ADDRESS}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </header>
+
+          {!IS_CONTRACT_CONFIGURED ? (
+            <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+              Contract address is missing. Add
+              NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS to your env file.
+            </div>
+          ) : null}
+
+          <section className="mt-6 overflow-hidden rounded-2xl border border-[var(--card-border)] bg-gradient-to-br from-white via-[var(--accent-soft)]/70 to-emerald-50/70 p-4 sm:p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">
+                  Pricing model
+                </p>
+                <h2 className="mt-1 font-[var(--font-display)] text-xl text-stone-900">
+                  Clear and predictable from first click
+                </h2>
+                <p className="mt-1 text-sm text-stone-600">
+                  You only pay when creating a new on-chain receipt proof.
+                  Verification is read-only and free.
+                </p>
+              </div>
+              <span className="inline-flex items-center rounded-full border border-stone-200 bg-white/90 px-3 py-1 text-xs font-semibold text-stone-700">
+                No subscriptions
+              </span>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <article
+                className={`rounded-2xl border p-4 shadow-[0_12px_28px_rgba(16,185,129,0.12)] transition-all duration-500 ${
+                  pricingReady
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-2 opacity-0"
+                } ${
+                  mode === "issuer"
+                    ? "border-emerald-300 bg-emerald-50/90"
+                    : "border-emerald-200 bg-white/90"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-emerald-200 bg-white text-emerald-700">
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M9.5 9.5h4a2 2 0 0 1 0 4h-3a2 2 0 0 0 0 4h4" />
+                        <path d="M12 7.5v1.5" />
+                        <path d="M12 15v1.5" />
+                      </svg>
+                    </span>
+                    <p className="text-sm font-semibold text-stone-900">
+                      Issuer: Register receipt
+                    </p>
+                  </div>
+                  <span className="shrink-0 whitespace-nowrap rounded-full border border-emerald-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 sm:px-2 sm:text-[11px]">
+                    {IS_PAID_REGISTRATION_ENABLED
+                      ? "Paid action"
+                      : "Currently free"}
+                  </span>
+                </div>
+                <p className="mt-3 text-2xl font-bold text-emerald-900">
+                  {IS_PAID_REGISTRATION_ENABLED
+                    ? `${PAYMENT_FEE_DISPLAY} ${PAYMENT_TOKEN_SYMBOL_FALLBACK}`
+                    : "0"}
+                </p>
+                <p className="mt-1 text-xs text-emerald-900/90">
+                  {IS_PAID_REGISTRATION_ENABLED
+                    ? "Charged once per new registration."
+                    : "No token payment configured in this environment."}
+                </p>
+              </article>
+
+              <article
+                className={`rounded-2xl border p-4 shadow-[0_12px_28px_rgba(14,165,233,0.12)] transition-all delay-100 duration-500 ${
+                  pricingReady
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-2 opacity-0"
+                } ${
+                  mode === "verifier"
+                    ? "border-sky-300 bg-sky-50/90"
+                    : "border-sky-200 bg-white/90"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-sky-200 bg-white text-sky-700">
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <p className="text-sm font-semibold text-stone-900">
+                      Verifier: Check receipt
+                    </p>
+                  </div>
+                  <span className="shrink-0 whitespace-nowrap rounded-full border border-sky-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-sky-800 sm:px-2 sm:text-[11px]">
+                    Always free
+                  </span>
+                </div>
+                <p className="mt-3 text-2xl font-bold text-sky-900">0</p>
+                <p className="mt-1 text-xs text-sky-900/90">
+                  No fee for verification lookups.
+                </p>
+              </article>
+            </div>
+
+            <div
+              className={`mt-3 rounded-xl border border-stone-200 bg-white/85 px-3 py-2 text-xs text-stone-700 transition-all delay-150 duration-500 ${
+                pricingReady
+                  ? "translate-y-0 opacity-100"
+                  : "translate-y-2 opacity-0"
+              }`}
+            >
+              Predictable pricing: pay only when you create proof. Verifying
+              existing proof is free.
+            </div>
+          </section>
+
+          <section className="mt-6 overflow-hidden rounded-2xl border border-[var(--card-border)] bg-gradient-to-br from-[var(--accent-soft)] via-white to-emerald-50 p-4 sm:p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">
+                  How it works
+                </p>
+                <h2 className="mt-1 font-[var(--font-display)] text-xl text-stone-900">
+                  A simple 3-step flow for everyone
+                </h2>
+                <p className="mt-1 text-sm text-stone-600">
+                  {mode === "issuer"
+                    ? "You are in Issuer mode: create tamper-proof receipt records (1 USDC per registration)."
+                    : "You are in Verifier mode: check if a receipt has a valid on-chain proof (free)."}
+                </p>
+              </div>
+              <span className="inline-flex items-center rounded-full border border-emerald-200 bg-white/90 px-3 py-1 text-xs font-semibold text-emerald-800">
+                {mode === "issuer" ? "Issuer journey" : "Verifier journey"}
+              </span>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              {flowSteps.map((step, index) => (
+                <div
+                  key={step.title}
+                  className={`relative rounded-xl border border-white/60 bg-white/80 p-4 shadow-[0_10px_25px_rgba(3,98,76,0.08)] backdrop-blur transition-all duration-500 ${
+                    pricingReady
+                      ? "translate-y-0 opacity-100"
+                      : "translate-y-2 opacity-0"
+                  }`}
+                  style={{ transitionDelay: `${index * 90}ms` }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
+                      {step.icon}
+                    </span>
+                    <span className="shrink-0 whitespace-nowrap rounded-full border border-emerald-200 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 sm:px-2 sm:text-[11px]">
+                      Step {index + 1}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-stone-900">
+                    {step.title}
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-stone-600">
+                    {step.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="mt-6 grid gap-5 md:grid-cols-[1fr_1.2fr]">
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                      mode === "issuer"
+                        ? "bg-[var(--accent)] text-white"
+                        : "bg-transparent text-stone-700"
+                    }`}
+                    onClick={() => setMode("issuer")}
+                  >
+                    Issuer
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                      mode === "verifier"
+                        ? "bg-[var(--accent)] text-white"
+                        : "bg-transparent text-stone-700"
+                    }`}
+                    onClick={() => setMode("verifier")}
+                  >
+                    Verifier
+                  </button>
+                </div>
+              </div>
+
+              {mode === "issuer" && IS_PAID_REGISTRATION_ENABLED ? (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+                  Issuer registration is paid. Approve payment, then register.
+                  Verification is free.
+                </div>
+              ) : null}
+
+              {mode === "verifier" && IS_PAID_REGISTRATION_ENABLED ? (
+                <div className="rounded-2xl border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900">
+                  Verifier is free. {PAYMENT_FEE_DISPLAY}{" "}
+                  {PAYMENT_TOKEN_SYMBOL_FALLBACK} applies only to issuer
+                  registrations.
+                </div>
+              ) : null}
+
+              <ReceiptDropzone onHashed={handleHashed} />
+
+              {fileHash ? (
+                <div className="rounded-2xl border border-[var(--card-border)] bg-white p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold">File: {fileName}</p>
                     <button
                       type="button"
-                      onClick={openAccountModal}
-                      className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-xl bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white transition hover:brightness-95"
+                      onClick={handleClearUploadedFile}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+                      aria-label="Clear selected file locally"
                     >
                       <svg
                         aria-hidden="true"
@@ -397,364 +686,131 @@ export function ReceiptuaryApp() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       >
-                        <rect x="2" y="7" width="20" height="14" rx="3" />
-                        <path d="M16 13h2" />
-                        <path d="M6 7V5a2 2 0 0 1 2-2h8" />
+                        <path d="M3 6h18" />
+                        <path d="M8 6V4h8v2" />
+                        <path d="M19 6l-1 14H6L5 6" />
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
                       </svg>
-                      <span className="max-w-[110px] truncate sm:max-w-[140px]">
-                        {account.displayName}
-                      </span>
+                      <span>Choose another file</span>
                     </button>
                   </div>
-                );
-              }}
-            </ConnectButton.Custom>
-
-            {IS_CONTRACT_CONFIGURED ? (
-              <div
-                id="chain-profile-popover"
-                className={`absolute left-0 right-0 top-full z-20 mt-2 origin-top rounded-2xl border border-[var(--card-border)] bg-white/95 p-4 text-xs text-stone-700 shadow-[0_18px_48px_rgba(41,33,18,0.16)] backdrop-blur transition-all duration-200 md:left-auto md:right-0 md:w-[22rem] md:origin-top-right ${
-                  showChainDetails
-                    ? "translate-y-0 opacity-100"
-                    : "pointer-events-none -translate-y-1 opacity-0"
-                }`}
-              >
-                <p className="font-semibold text-stone-800">
-                  Active chain profile
-                </p>
-                <p className="mt-2">
-                  Active chain ID: {deployedChainId ?? "unknown"}
-                </p>
-                <p className="mt-1">
-                  Recommended verification: {deployedChainLabel}
-                </p>
-                <p className="mt-1 break-all font-[var(--font-mono)]">
-                  Contract: {CONTRACT_ADDRESS}
-                </p>
-              </div>
-            ) : null}
-          </div>
-        </header>
-
-        {!IS_CONTRACT_CONFIGURED ? (
-          <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-            Contract address is missing. Add
-            NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS to your env file.
-          </div>
-        ) : null}
-
-        <section className="mt-6 overflow-hidden rounded-2xl border border-[var(--card-border)] bg-gradient-to-br from-white via-[var(--accent-soft)]/70 to-emerald-50/70 p-4 sm:p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">
-                Pricing model
-              </p>
-              <h2 className="mt-1 font-[var(--font-display)] text-xl text-stone-900">
-                Clear and predictable from first click
-              </h2>
-              <p className="mt-1 text-sm text-stone-600">
-                You only pay when creating a new on-chain receipt proof.
-                Verification is read-only and free.
-              </p>
-            </div>
-            <span className="inline-flex items-center rounded-full border border-stone-200 bg-white/90 px-3 py-1 text-xs font-semibold text-stone-700">
-              No subscriptions
-            </span>
-          </div>
-
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <article
-              className={`rounded-2xl border p-4 shadow-[0_12px_28px_rgba(16,185,129,0.12)] transition-all duration-500 ${
-                pricingReady
-                  ? "translate-y-0 opacity-100"
-                  : "translate-y-2 opacity-0"
-              } ${
-                mode === "issuer"
-                  ? "border-emerald-300 bg-emerald-50/90"
-                  : "border-emerald-200 bg-white/90"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-emerald-200 bg-white text-emerald-700">
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 24 24"
-                      className="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <circle cx="12" cy="12" r="9" />
-                      <path d="M9.5 9.5h4a2 2 0 0 1 0 4h-3a2 2 0 0 0 0 4h4" />
-                      <path d="M12 7.5v1.5" />
-                      <path d="M12 15v1.5" />
-                    </svg>
-                  </span>
-                  <p className="text-sm font-semibold text-stone-900">
-                    Issuer: Register receipt
+                  <p className="mt-1 text-xs text-stone-600">
+                    SHA-256 (bytes32)
+                  </p>
+                  <p className="mt-2 break-all font-[var(--font-mono)] text-xs text-[var(--accent)]">
+                    {fileHash}
+                  </p>
+                  <p className="mt-2 text-xs text-stone-500">
+                    Short format: {truncateHash(fileHash)}
+                  </p>
+                  <p className="mt-2 text-xs text-stone-500">
+                    Local action only: this clears the selected file in this
+                    app. No on-chain records are deleted.
                   </p>
                 </div>
-                <span className="shrink-0 whitespace-nowrap rounded-full border border-emerald-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 sm:px-2 sm:text-[11px]">
-                  {IS_PAID_REGISTRATION_ENABLED
-                    ? "Paid action"
-                    : "Currently free"}
-                </span>
-              </div>
-              <p className="mt-3 text-2xl font-bold text-emerald-900">
-                {IS_PAID_REGISTRATION_ENABLED
-                  ? `${PAYMENT_FEE_DISPLAY} ${PAYMENT_TOKEN_SYMBOL_FALLBACK}`
-                  : "0"}
-              </p>
-              <p className="mt-1 text-xs text-emerald-900/90">
-                {IS_PAID_REGISTRATION_ENABLED
-                  ? "Charged once per new registration."
-                  : "No token payment configured in this environment."}
-              </p>
-            </article>
+              ) : null}
+            </div>
 
-            <article
-              className={`rounded-2xl border p-4 shadow-[0_12px_28px_rgba(14,165,233,0.12)] transition-all delay-100 duration-500 ${
-                pricingReady
-                  ? "translate-y-0 opacity-100"
-                  : "translate-y-2 opacity-0"
-              } ${
-                mode === "verifier"
-                  ? "border-sky-300 bg-sky-50/90"
-                  : "border-sky-200 bg-white/90"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-sky-200 bg-white text-sky-700">
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 24 24"
-                      className="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M20 6 9 17l-5-5" />
-                    </svg>
-                  </span>
-                  <p className="text-sm font-semibold text-stone-900">
-                    Verifier: Check receipt
-                  </p>
-                </div>
-                <span className="shrink-0 whitespace-nowrap rounded-full border border-sky-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-sky-800 sm:px-2 sm:text-[11px]">
-                  Always free
-                </span>
-              </div>
-              <p className="mt-3 text-2xl font-bold text-sky-900">0</p>
-              <p className="mt-1 text-xs text-sky-900/90">
-                No fee for verification lookups.
-              </p>
-            </article>
-          </div>
-
-          <div
-            className={`mt-3 rounded-xl border border-stone-200 bg-white/85 px-3 py-2 text-xs text-stone-700 transition-all delay-150 duration-500 ${
-              pricingReady
-                ? "translate-y-0 opacity-100"
-                : "translate-y-2 opacity-0"
-            }`}
-          >
-            Predictable pricing: pay only when you create proof. Verifying
-            existing proof is free.
-          </div>
-        </section>
-
-        <section className="mt-6 overflow-hidden rounded-2xl border border-[var(--card-border)] bg-gradient-to-br from-[var(--accent-soft)] via-white to-emerald-50 p-4 sm:p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">
-                How it works
-              </p>
-              <h2 className="mt-1 font-[var(--font-display)] text-xl text-stone-900">
-                A simple 3-step flow for everyone
-              </h2>
-              <p className="mt-1 text-sm text-stone-600">
-                {mode === "issuer"
-                  ? "You are in Issuer mode: create tamper-proof receipt records (1 USDC per registration)."
-                  : "You are in Verifier mode: check if a receipt has a valid on-chain proof (free)."}
-              </p>
-            </div>
-            <span className="inline-flex items-center rounded-full border border-emerald-200 bg-white/90 px-3 py-1 text-xs font-semibold text-emerald-800">
-              {mode === "issuer" ? "Issuer journey" : "Verifier journey"}
-            </span>
-          </div>
-
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            {flowSteps.map((step, index) => (
-              <div
-                key={step.title}
-                className={`relative rounded-xl border border-white/60 bg-white/80 p-4 shadow-[0_10px_25px_rgba(3,98,76,0.08)] backdrop-blur transition-all duration-500 ${
-                  pricingReady
-                    ? "translate-y-0 opacity-100"
-                    : "translate-y-2 opacity-0"
-                }`}
-                style={{ transitionDelay: `${index * 90}ms` }}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
-                    {step.icon}
-                  </span>
-                  <span className="shrink-0 whitespace-nowrap rounded-full border border-emerald-200 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 sm:px-2 sm:text-[11px]">
-                    Step {index + 1}
-                  </span>
+              {!fileHash ? (
+                <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--accent-soft)] p-5 text-sm text-stone-700">
+                  Upload a receipt to continue.
                 </div>
-                <p className="mt-3 text-sm font-semibold text-stone-900">
-                  {step.title}
-                </p>
-                <p className="mt-1 text-xs leading-relaxed text-stone-600">
-                  {step.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-6 grid gap-5 md:grid-cols-[1fr_1.2fr]">
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-2">
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
-                    mode === "issuer"
-                      ? "bg-[var(--accent)] text-white"
-                      : "bg-transparent text-stone-700"
-                  }`}
-                  onClick={() => setMode("issuer")}
-                >
-                  Issuer
-                </button>
-                <button
-                  type="button"
-                  className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
-                    mode === "verifier"
-                      ? "bg-[var(--accent)] text-white"
-                      : "bg-transparent text-stone-700"
-                  }`}
-                  onClick={() => setMode("verifier")}
-                >
-                  Verifier
-                </button>
-              </div>
-            </div>
-
-            {mode === "issuer" && IS_AA_ENABLED ? (
-              <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                      registrationMode === "standard"
-                        ? "bg-[var(--accent)] text-white"
-                        : "bg-transparent text-stone-700"
-                    }`}
-                    onClick={() => setRegistrationMode("standard")}
-                  >
-                    Wallet
-                  </button>
-                  <button
-                    type="button"
-                    className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                      registrationMode === "gasless"
-                        ? "bg-[var(--accent)] text-white"
-                        : "bg-transparent text-stone-700"
-                    }`}
-                    onClick={() => setRegistrationMode("gasless")}
-                  >
-                    Gasless (AA)
-                  </button>
-                </div>
-              </div>
-            ) : null}
-
-            {mode === "issuer" && IS_PAID_REGISTRATION_ENABLED ? (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
-                Issuer registration is paid. Approve payment, then register.
-                Verification is free.
-              </div>
-            ) : null}
-
-            {mode === "verifier" && IS_PAID_REGISTRATION_ENABLED ? (
-              <div className="rounded-2xl border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900">
-                Verifier is free. {PAYMENT_FEE_DISPLAY}{" "}
-                {PAYMENT_TOKEN_SYMBOL_FALLBACK} applies only to issuer
-                registrations.
-              </div>
-            ) : null}
-
-            <ReceiptDropzone onHashed={handleHashed} />
-
-            {fileHash ? (
-              <div className="rounded-2xl border border-[var(--card-border)] bg-white p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-semibold">File: {fileName}</p>
-                  <button
-                    type="button"
-                    onClick={handleClearUploadedFile}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
-                    aria-label="Clear selected file locally"
-                  >
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 24 24"
-                      className="h-3.5 w-3.5"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M3 6h18" />
-                      <path d="M8 6V4h8v2" />
-                      <path d="M19 6l-1 14H6L5 6" />
-                      <path d="M10 11v6" />
-                      <path d="M14 11v6" />
-                    </svg>
-                    <span>Choose another file</span>
-                  </button>
-                </div>
-                <p className="mt-1 text-xs text-stone-600">SHA-256 (bytes32)</p>
-                <p className="mt-2 break-all font-[var(--font-mono)] text-xs text-[var(--accent)]">
-                  {fileHash}
-                </p>
-                <p className="mt-2 text-xs text-stone-500">
-                  Short format: {truncateHash(fileHash)}
-                </p>
-                <p className="mt-2 text-xs text-stone-500">
-                  Local action only: this clears the selected file in this app.
-                  No on-chain records are deleted.
-                </p>
-              </div>
-            ) : null}
-          </div>
-
-          <div>
-            {!fileHash ? (
-              <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--accent-soft)] p-5 text-sm text-stone-700">
-                Upload a receipt to continue.
-              </div>
-            ) : mode === "issuer" ? (
-              registrationMode === "gasless" && IS_AA_ENABLED ? (
-                <GaslessRegister fileHash={fileHash} />
-              ) : (
+              ) : mode === "issuer" ? (
                 <RegisterReceipt fileHash={fileHash} />
-              )
-            ) : (
-              <VerifyReceipt fileHash={fileHash} />
-            )}
+              ) : (
+                <VerifyReceipt fileHash={fileHash} />
+              )}
+            </div>
+          </section>
+
+          <section className="mt-6 overflow-hidden rounded-2xl border border-[var(--card-border)] bg-white/80 p-4 sm:p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">
+              FAQ
+            </p>
+            <h2 className="mt-1 font-[var(--font-display)] text-xl text-stone-900">
+              Common questions
+            </h2>
+
+            <div className="mt-4 space-y-3">
+              {[
+                {
+                  q: "Do you store my receipts or files?",
+                  a: "No. Your file never leaves your device. The fingerprint (SHA-256 hash) is computed locally in your browser. Only the hash — never the file itself — is sent to the blockchain.",
+                },
+                {
+                  q: "Why Base network?",
+                  a: "Base is a fast, low-cost Ethereum Layer 2 network backed by Coinbase. It provides the security of Ethereum at a fraction of the cost, making per-receipt on-chain proofs practical.",
+                },
+                {
+                  q: "Do I need ETH to verify a receipt?",
+                  a: "No. Verification is a read-only lookup — it is completely free and requires no wallet or gas.",
+                },
+                {
+                  q: "Why does re-saving a PDF break verification?",
+                  a: "SHA-256 hashing is exact — even a single invisible bit change produces a completely different fingerprint. Always upload the original file exactly as it was downloaded, without opening, resaving, or renaming it.",
+                },
+                {
+                  q: "What does the 1 USDC fee cover?",
+                  a: "The fee is charged to the issuer wallet at the time of registration to prevent spam and sustainably fund the service. Verification is always free.",
+                },
+                {
+                  q: "Is this GDPR compliant?",
+                  a: "Yes. Because files never leave your device and only a non-reversible hash is stored on-chain, no personal data or file content is shared with any server or third party.",
+                },
+              ].map(({ q, a }) => (
+                <details
+                  key={q}
+                  className="group rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-4 py-3"
+                >
+                  <summary className="cursor-pointer list-none text-sm font-semibold text-stone-800 marker:hidden">
+                    <span className="flex items-center justify-between gap-2">
+                      <span>{q}</span>
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4 shrink-0 text-stone-400 transition-transform duration-200 group-open:rotate-180"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </span>
+                  </summary>
+                  <p className="mt-2 text-xs leading-relaxed text-stone-600">
+                    {a}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </section>
+        </div>
+      </main>
+
+      <footer className="grid-overlay px-4 pb-8 md:px-10 md:pb-10">
+        <div className="mx-auto w-full max-w-4xl rounded-3xl border border-[var(--card-border)] bg-[var(--card)]/95 p-4 shadow-[0_20px_65px_rgba(41,33,18,0.12)] backdrop-blur sm:p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs font-medium tracking-[0.08em] text-stone-600">
+              Copyright {currentYear} Receiptuary. All rights reserved.
+            </p>
+            <p className="text-xs text-stone-700">
+              A product from{" "}
+              <a
+                href="https://hedigardi.com"
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-[var(--accent)] transition-colors hover:text-emerald-700"
+              >
+                hedigardi.com
+              </a>
+            </p>
           </div>
-        </section>
-      </div>
-    </main>
+        </div>
+      </footer>
+    </>
   );
 }
