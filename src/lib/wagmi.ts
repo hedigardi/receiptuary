@@ -35,12 +35,13 @@ const connectors = projectId
   ? connectorsForWallets(
       [
         {
-          groupName: "Get started",
-          wallets: [rainbowCoinbaseWallet],
-        },
-        {
-          groupName: "Other wallets",
-          wallets: [metaMaskWallet, injectedWallet, walletConnectWallet],
+          groupName: "Recommended",
+          wallets: [
+            metaMaskWallet,
+            injectedWallet,
+            rainbowCoinbaseWallet,
+            walletConnectWallet,
+          ],
         },
       ],
       {
@@ -49,9 +50,9 @@ const connectors = projectId
       },
     )
   : [
-      coinbaseWallet({ appName: "Receiptuary", preference: "all" }),
       injected(),
       metaMask(),
+      coinbaseWallet({ appName: "Receiptuary" }),
       walletConnect({
         projectId: "receiptuary-demo",
         showQrModal: true,

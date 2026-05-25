@@ -1,9 +1,4 @@
-type ErrorContext =
-  | "connect"
-  | "register"
-  | "verify"
-  | "gasless"
-  | "smartAccount";
+type ErrorContext = "connect" | "register" | "verify";
 
 function extractErrorMessage(caught: unknown): string {
   if (typeof caught === "string") {
@@ -34,10 +29,6 @@ function getFallbackMessage(context: ErrorContext): string {
       return "Could not register the receipt. Please try again.";
     case "verify":
       return "Could not verify this receipt right now. Please try again.";
-    case "gasless":
-      return "Could not complete gasless registration. Please try again.";
-    case "smartAccount":
-      return "Could not initialize your smart wallet. Please sign in and try again.";
     default:
       return "Something went wrong. Please try again.";
   }
