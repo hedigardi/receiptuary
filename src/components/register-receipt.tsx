@@ -8,6 +8,11 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
+import {
+  useCapabilities,
+  useWriteContracts,
+  useCallsStatus,
+} from "wagmi/experimental";
 import { formatUnits } from "viem";
 import { getExplorerTxUrl } from "@/lib/explorer";
 import {
@@ -138,6 +143,55 @@ export function RegisterReceipt({ fileHash }: Props) {
     ? getTechnicalErrorDetails(registerError)
     : null;
 
+  // Paymaster (ERC-5792) — gas sponsorship for Coinbase Smart Wallet
+  const paymasterUrl = process.env.NEXT_PUBLIC_PAYMASTER_URL?.trim() || null;
+  const { data: capabilities } = useCapabilities({
+    query: {
+      enabled: !!paymasterUrl && IS_PAID_REGISTRATION_ENABLED && isConnected,
+    },
+  });
+  const paymasterSupported =
+    !!paymasterUrl &&
+    capabilities?.[chainId]?.paymasterService?.supported === true;
+
+  const {
+    writeContracts,
+    data: batchCallData,
+    isPending: isBatchPending,
+    error: batchError,
+  } = useWriteContracts();
+
+  const batchCallId =
+    typeof batchCallData === "string"
+      ? batchCallData
+      : ((batchCallData as { id?: string } | undefined)?.id ?? null);
+
+  const { data: batchCallStatus } = useCallsStatus({
+    id: batchCallId ?? "",
+    query: {
+      enabled: !!batchCallId,
+      refetchInterval: 1500,
+    },
+  });
+
+  const isBatchConfirmed = batchCallStatus?.status === "success";
+  const isBatchInProgress =
+    !!batchCallId && batchCallStatus?.status === "pending";
+  const batchTxHash = (
+    batchCallStatus?.receipts as
+      | Array<{ transactionHash: `0x${string}` }>
+      | undefined
+  )?.[0]?.transactionHash;
+  const batchExplorerUrl = batchTxHash
+    ? getExplorerTxUrl(chainId, batchTxHash)
+    : null;
+  const batchFriendlyError = batchError
+    ? toUserFriendlyError(batchError, "register")
+    : null;
+  const batchTechnicalError = batchError
+    ? getTechnicalErrorDetails(batchError)
+    : null;
+
   const submitDisabled =
     !IS_CONTRACT_CONFIGURED ||
     !IS_PAID_REGISTRATION_ENABLED ||
@@ -164,7 +218,20 @@ export function RegisterReceipt({ fileHash }: Props) {
     isRegisterConfirming ||
     hasEnoughAllowance ||
     !hasEnoughBalance;
+  const submitDisabledPaymaster =
+    !IS_CONTRACT_CONFIGURED ||
+    !IS_PAID_REGISTRATION_ENABLED ||
+    !isConnected ||
+    !issuerName.trim() ||
+    !fileHash ||
+    !acceptedFee ||
+    isBatchPending ||
+    isBatchInProgress ||
+    !hasEnoughBalance;
 
+  const effectiveSubmitDisabled = paymasterSupported
+    ? submitDisabledPaymaster
+    : submitDisabled;
   const handleApprove = () => {
     if (approveDisabled) {
       return;
@@ -180,6 +247,30 @@ export function RegisterReceipt({ fileHash }: Props) {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (paymasterSupported) {
+      if (submitDisabledPaymaster) return;
+      writeContracts({
+        contracts: [
+          {
+            address: PAYMENT_TOKEN_ADDRESS,
+            abi: ERC20_ABI,
+            functionName: "approve",
+            args: [CONTRACT_ADDRESS, PAYMENT_FEE_AMOUNT],
+          },
+          {
+            address: CONTRACT_ADDRESS,
+            abi: RECEIPTUARY_ABI,
+            functionName: "registerReceipt",
+            args: [fileHash, issuerName.trim(), referenceId.trim()],
+          },
+        ],
+        capabilities: {
+          paymasterService: { url: paymasterUrl as string },
+        },
+      });
+      return;
+    }
 
     if (submitDisabled) {
       return;
@@ -281,7 +372,17 @@ export function RegisterReceipt({ fileHash }: Props) {
         </p>
       ) : null}
 
-      {isConnected && !hasEnoughAllowance ? (
+      {paymasterSupported ? (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+          <p className="font-semibold">Gas sponsored</p>
+          <p className="mt-0.5">
+            Your wallet supports gas sponsorship — you only need{" "}
+            {resolvedSymbol} to register. No ETH required.
+          </p>
+        </div>
+      ) : null}
+
+      {isConnected && !paymasterSupported && !hasEnoughAllowance ? (
         <button
           type="button"
           onClick={handleApprove}
@@ -294,7 +395,7 @@ export function RegisterReceipt({ fileHash }: Props) {
               ? "Waiting for approve confirmation"
               : `Approve ${feeDisplay} ${resolvedSymbol}`}
         </button>
-      ) : isConnected ? (
+      ) : isConnected && !paymasterSupported ? (
         <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900">
           Allowance ready. You can complete registration now.
         </p>
@@ -302,20 +403,46 @@ export function RegisterReceipt({ fileHash }: Props) {
 
       <button
         type="submit"
-        disabled={submitDisabled}
+        disabled={effectiveSubmitDisabled}
         className="w-full rounded-xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {isRegisterPending
-          ? "Confirm in wallet"
-          : isRegisterConfirming
-            ? "Writing to blockchain"
-            : "Pay and register receipt"}
+        {paymasterSupported
+          ? isBatchPending
+            ? "Confirm in wallet"
+            : isBatchInProgress
+              ? "Registering on-chain\u2026"
+              : "Pay and register (gas sponsored)"
+          : isRegisterPending
+            ? "Confirm in wallet"
+            : isRegisterConfirming
+              ? "Writing to blockchain"
+              : "Pay and register receipt"}
       </button>
 
-      {isRegisterSuccess ? (
+      {isRegisterSuccess || isBatchConfirmed ? (
         <p className="text-sm text-[var(--accent)]">
           Receipt registered. Fee paid: {feeDisplay} {resolvedSymbol}.
         </p>
+      ) : null}
+
+      {batchTxHash ? (
+        <div className="space-y-2 rounded-xl border border-[var(--card-border)] bg-white p-3 text-xs">
+          <p className="break-all font-[var(--font-mono)]">
+            Batch tx: {batchTxHash}
+          </p>
+          <div className="flex gap-2">
+            {batchExplorerUrl ? (
+              <a
+                href={batchExplorerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg border border-[var(--card-border)] px-3 py-1 font-semibold text-stone-700"
+              >
+                Open explorer
+              </a>
+            ) : null}
+          </div>
+        </div>
       ) : null}
 
       {approveTxHash ? (
@@ -384,6 +511,18 @@ export function RegisterReceipt({ fileHash }: Props) {
             <details className="mt-2 text-xs text-amber-900/80">
               <summary className="cursor-pointer">Technical details</summary>
               <p className="mt-1 break-all">{registerTechnicalError}</p>
+            </details>
+          ) : null}
+        </div>
+      ) : null}
+
+      {batchError ? (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+          <p>{batchFriendlyError}</p>
+          {batchTechnicalError ? (
+            <details className="mt-2 text-xs text-amber-900/80">
+              <summary className="cursor-pointer">Technical details</summary>
+              <p className="mt-1 break-all">{batchTechnicalError}</p>
             </details>
           ) : null}
         </div>

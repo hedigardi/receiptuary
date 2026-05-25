@@ -323,27 +323,34 @@ export function ReceiptuaryApp() {
 
                 if (!connected) {
                   return (
-                    <button
-                      type="button"
-                      onClick={openConnectModal}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3.5 py-2 text-sm font-semibold text-white transition hover:brightness-95 sm:w-auto"
-                    >
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 24 24"
-                        className="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+                    <div className="flex w-full flex-col items-end gap-1.5 sm:w-auto">
+                      <button
+                        type="button"
+                        onClick={openConnectModal}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3.5 py-2 text-sm font-semibold text-white transition hover:brightness-95 sm:w-auto"
                       >
-                        <rect x="2" y="7" width="20" height="14" rx="3" />
-                        <path d="M16 13h2" />
-                        <path d="M6 7V5a2 2 0 0 1 2-2h8" />
-                      </svg>
-                      <span>Connect Wallet</span>
-                    </button>
+                        <svg
+                          aria-hidden="true"
+                          viewBox="0 0 24 24"
+                          className="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect x="2" y="7" width="20" height="14" rx="3" />
+                          <path d="M16 13h2" />
+                          <path d="M6 7V5a2 2 0 0 1 2-2h8" />
+                        </svg>
+                        <span>Connect Wallet</span>
+                      </button>
+                      <p className="text-right text-[11px] text-stone-500">
+                        Supports MetaMask, Coinbase Wallet, and more.
+                        <br className="hidden sm:inline" /> Only needed for
+                        issuing receipts.
+                      </p>
+                    </div>
                   );
                 }
 
@@ -752,6 +759,70 @@ export function ReceiptuaryApp() {
             ) : (
               <VerifyReceipt fileHash={fileHash} />
             )}
+          </div>
+        </section>
+
+        <section className="mt-6 overflow-hidden rounded-2xl border border-[var(--card-border)] bg-white/80 p-4 sm:p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">
+            FAQ
+          </p>
+          <h2 className="mt-1 font-[var(--font-display)] text-xl text-stone-900">
+            Common questions
+          </h2>
+
+          <div className="mt-4 space-y-3">
+            {[
+              {
+                q: "Do you store my receipts or files?",
+                a: "No. Your file never leaves your device. The fingerprint (SHA-256 hash) is computed locally in your browser. Only the hash — never the file itself — is sent to the blockchain.",
+              },
+              {
+                q: "Why Base network?",
+                a: "Base is a fast, low-cost Ethereum Layer 2 network backed by Coinbase. It provides the security of Ethereum at a fraction of the cost, making per-receipt on-chain proofs practical.",
+              },
+              {
+                q: "Do I need ETH to verify a receipt?",
+                a: "No. Verification is a read-only lookup — it is completely free and requires no wallet or gas.",
+              },
+              {
+                q: "Why does re-saving a PDF break verification?",
+                a: "SHA-256 hashing is exact — even a single invisible bit change produces a completely different fingerprint. Always upload the original file exactly as it was downloaded, without opening, resaving, or renaming it.",
+              },
+              {
+                q: "What does the 1 USDC fee cover?",
+                a: "The fee is charged to the issuer wallet at the time of registration to prevent spam and sustainably fund the service. Verification is always free.",
+              },
+              {
+                q: "Is this GDPR compliant?",
+                a: "Yes. Because files never leave your device and only a non-reversible hash is stored on-chain, no personal data or file content is shared with any server or third party.",
+              },
+            ].map(({ q, a }) => (
+              <details
+                key={q}
+                className="group rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-4 py-3"
+              >
+                <summary className="cursor-pointer list-none text-sm font-semibold text-stone-800 marker:hidden">
+                  <span className="flex items-center justify-between gap-2">
+                    <span>{q}</span>
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="h-4 w-4 shrink-0 text-stone-400 transition-transform duration-200 group-open:rotate-180"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </span>
+                </summary>
+                <p className="mt-2 text-xs leading-relaxed text-stone-600">
+                  {a}
+                </p>
+              </details>
+            ))}
           </div>
         </section>
       </div>
