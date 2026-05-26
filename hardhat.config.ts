@@ -1,5 +1,6 @@
 import { defineConfig } from "hardhat/config";
 import hardhatEthers from "@nomicfoundation/hardhat-ethers";
+import hardhatMocha from "@nomicfoundation/hardhat-mocha";
 import * as dotenv from "dotenv";
 
 dotenv.config();
@@ -40,7 +41,7 @@ if (process.env.BASE_MAINNET_RPC_URL) {
  * Enables optimizer for more gas-efficient production deployments.
  */
 const config = defineConfig({
-  plugins: [hardhatEthers],
+  plugins: [hardhatEthers, hardhatMocha],
   solidity: {
     version: "0.8.20",
     settings: {

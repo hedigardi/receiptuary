@@ -8,6 +8,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:app:smoke": "npm run lint && npm run build",
+    "test:contract": "hardhat test",
+    "test": "npm run test:contract && npm run test:app:smoke",
     "preflight:prod": "node scripts/preflight-production.mjs",
     "contract:compile": "hardhat compile",
     "contract:deploy:base": "hardhat run scripts/deploy.ts --network baseSepolia",
@@ -30,6 +33,7 @@
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers": "^4.0.12",
+    "@nomicfoundation/hardhat-mocha": "^3.0.20",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

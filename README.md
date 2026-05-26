@@ -81,6 +81,18 @@ Compile:
 npm run contract:compile
 ```
 
+Run tests:
+
+```bash
+npm run test:contract
+```
+
+Run app smoke checks (lint + production build):
+
+```bash
+npm run test:app:smoke
+```
+
 Run production preflight (recommended before deploy):
 
 ```bash
@@ -152,3 +164,16 @@ Implemented SEO pieces:
 - Web manifest: `public/site.webmanifest`
 
 Set `NEXT_PUBLIC_SITE_URL` to your real production domain for canonical, sitemap host and robots host.
+
+## CI and branch protection
+
+This repository includes a GitHub Actions workflow at `.github/workflows/ci.yml`.
+It runs `npm test` (contract tests + app smoke checks) on pull requests and pushes.
+
+Recommended branch protection for `main` before customer go-live:
+
+1. GitHub repo settings -> Branches -> Add branch protection rule for `main`.
+2. Enable `Require a pull request before merging`.
+3. Enable `Require status checks to pass before merging`.
+4. Add required check: `Lint, build, and contract tests`.
+5. Optional but recommended: enable `Require branches to be up to date before merging`.

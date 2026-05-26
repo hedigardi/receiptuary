@@ -784,7 +784,7 @@ export function ReceiptuaryApp({
                         type="button"
                         className={`rounded-xl px-3 py-2 text-sm font-semibold transition cursor-pointer ${
                           mode === "verifier"
-                            ? "bg-[var(--accent)] text-white dark:text-[#0f1613]"
+                            ? "bg-sky-600 text-white"
                             : "bg-transparent text-stone-700 dark:text-stone-300"
                         }`}
                         onClick={() => setMode("verifier")}
@@ -809,7 +809,7 @@ export function ReceiptuaryApp({
                     </div>
                   ) : null}
 
-                  <ReceiptDropzone onHashed={handleHashed} />
+                  <ReceiptDropzone onHashed={handleHashed} mode={mode} />
 
                   {fileHash ? (
                     <div className="rounded-2xl border border-[var(--card-border)] bg-white dark:bg-[var(--card)] p-4">
