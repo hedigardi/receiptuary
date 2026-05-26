@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
 :root {
   --background: #fbf8f3;
   --foreground: #1f1f1f;
@@ -10,6 +12,17 @@
   --warn: #9f2c17;
   --grid-size: 26px;
   --grid-line-alpha: 0.06;
+}
+
+.dark {
+  --background: #0f1613;
+  --foreground: #edeae3;
+  --card: #1a2320;
+  --card-border: #2e3d38;
+  --accent: #34d399;
+  --accent-soft: #0d2e23;
+  --warn: #f87171;
+  --grid-line-alpha: 0.045;
 }
 
 @theme inline {
@@ -43,6 +56,16 @@ body {
     right top,
     center top;
   background-attachment: fixed, fixed, fixed;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+.dark body {
+  background-image:
+    radial-gradient(circle at 10% 10%, #0d2416 0%, transparent 35%),
+    radial-gradient(circle at 90% 10%, #0a1e2a 0%, transparent 40%),
+    linear-gradient(180deg, #0f1613 0%, #111a17 40%, #0d1411 100%);
 }
 
 .grid-overlay {

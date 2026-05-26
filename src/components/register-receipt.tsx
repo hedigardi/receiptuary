@@ -224,7 +224,7 @@ export function RegisterReceipt({ fileHash }: Props) {
         </div>
       ) : null}
 
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+      <div className="rounded-xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 p-3 text-xs text-emerald-900 dark:text-emerald-300">
         <p className="font-semibold">Service fee</p>
         <p className="mt-1">
           {feeDisplay} {resolvedSymbol} per registration
@@ -233,9 +233,11 @@ export function RegisterReceipt({ fileHash }: Props) {
       </div>
 
       <label className="block">
-        <span className="mb-1 block text-sm text-stone-700">Issuer name</span>
+        <span className="mb-1 block text-sm text-stone-700 dark:text-stone-300">
+          Issuer name
+        </span>
         <input
-          className="w-full rounded-xl border border-[var(--card-border)] bg-white px-3 py-2 text-sm outline-none ring-[var(--accent)] transition focus:ring-2"
+          className="w-full rounded-xl border border-[var(--card-border)] bg-white dark:bg-[var(--card)] px-3 py-2 text-sm outline-none ring-[var(--accent)] transition focus:ring-2 dark:text-[var(--foreground)]"
           required
           value={issuerName}
           onChange={(event) => setIssuerName(event.target.value)}
@@ -244,18 +246,18 @@ export function RegisterReceipt({ fileHash }: Props) {
       </label>
 
       <label className="block">
-        <span className="mb-1 block text-sm text-stone-700">
+        <span className="mb-1 block text-sm text-stone-700 dark:text-stone-300">
           Reference ID (optional)
         </span>
         <input
-          className="w-full rounded-xl border border-[var(--card-border)] bg-white px-3 py-2 text-sm outline-none ring-[var(--accent)] transition focus:ring-2"
+          className="w-full rounded-xl border border-[var(--card-border)] bg-white dark:bg-[var(--card)] px-3 py-2 text-sm outline-none ring-[var(--accent)] transition focus:ring-2 dark:text-[var(--foreground)]"
           value={referenceId}
           onChange={(event) => setReferenceId(event.target.value)}
           placeholder="e.g. INV-2026-001"
         />
       </label>
 
-      <label className="flex items-start gap-2 rounded-xl border border-[var(--card-border)] bg-white px-3 py-2 text-xs text-stone-700">
+      <label className="flex items-start gap-2 rounded-xl border border-[var(--card-border)] bg-white dark:bg-[var(--card)] px-3 py-2 text-xs text-stone-700 dark:text-stone-300">
         <input
           type="checkbox"
           checked={acceptedFee}
@@ -286,7 +288,7 @@ export function RegisterReceipt({ fileHash }: Props) {
           type="button"
           onClick={handleApprove}
           disabled={approveDisabled}
-          className="w-full rounded-xl border border-[var(--accent)] bg-white px-4 py-3 text-sm font-semibold text-[var(--accent)] transition hover:bg-[var(--accent-soft)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-xl border border-[var(--accent)] bg-white dark:bg-[var(--card)] px-4 py-3 text-sm font-semibold text-[var(--accent)] transition hover:bg-[var(--accent-soft)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isApprovePending
             ? `Approve ${resolvedSymbol} in wallet`
@@ -303,7 +305,7 @@ export function RegisterReceipt({ fileHash }: Props) {
       <button
         type="submit"
         disabled={submitDisabled}
-        className="w-full rounded-xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full rounded-xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isRegisterPending
           ? "Confirm in wallet"
@@ -319,7 +321,7 @@ export function RegisterReceipt({ fileHash }: Props) {
       ) : null}
 
       {approveTxHash ? (
-        <div className="space-y-2 rounded-xl border border-[var(--card-border)] bg-white p-3 text-xs">
+        <div className="space-y-2 rounded-xl border border-[var(--card-border)] bg-white dark:bg-[var(--card)] p-3 text-xs">
           <p className="break-all font-[var(--font-mono)]">
             Approve tx: {approveTxHash}
           </p>
@@ -329,7 +331,7 @@ export function RegisterReceipt({ fileHash }: Props) {
                 href={approveExplorerUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-lg border border-[var(--card-border)] px-3 py-1 font-semibold text-stone-700"
+                className="rounded-lg border border-[var(--card-border)] px-3 py-1 font-semibold text-stone-700 dark:text-stone-300"
               >
                 Open approve tx
               </a>
@@ -339,7 +341,7 @@ export function RegisterReceipt({ fileHash }: Props) {
       ) : null}
 
       {registerTxHash ? (
-        <div className="space-y-2 rounded-xl border border-[var(--card-border)] bg-white p-3 text-xs">
+        <div className="space-y-2 rounded-xl border border-[var(--card-border)] bg-white dark:bg-[var(--card)] p-3 text-xs">
           <p className="break-all font-[var(--font-mono)]">
             Register tx: {registerTxHash}
           </p>
@@ -347,7 +349,7 @@ export function RegisterReceipt({ fileHash }: Props) {
             <button
               type="button"
               onClick={handleCopyTxHash}
-              className="rounded-lg border border-[var(--card-border)] px-3 py-1 font-semibold text-stone-700"
+              className="rounded-lg border border-[var(--card-border)] px-3 py-1 font-semibold text-stone-700 dark:text-stone-300 cursor-pointer"
             >
               {copyState === "done" ? "Copied" : "Copy hash"}
             </button>
@@ -356,7 +358,7 @@ export function RegisterReceipt({ fileHash }: Props) {
                 href={registerExplorerUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-lg border border-[var(--card-border)] px-3 py-1 font-semibold text-stone-700"
+                className="rounded-lg border border-[var(--card-border)] px-3 py-1 font-semibold text-stone-700 dark:text-stone-300"
               >
                 Open explorer
               </a>

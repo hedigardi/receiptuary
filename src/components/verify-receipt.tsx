@@ -52,7 +52,7 @@ export function VerifyReceipt({ fileHash }: Props) {
 
   if (isLoading) {
     return (
-      <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-5 text-sm text-stone-600">
+      <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-5 text-sm text-stone-600 dark:text-stone-400">
         Fetching receipt anchor from the blockchain.
       </div>
     );
@@ -114,8 +114,8 @@ export function VerifyReceipt({ fileHash }: Props) {
     <div
       className={`rounded-2xl border p-5 ${
         isRegistered
-          ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-          : "border-red-200 bg-red-50 text-red-900"
+          ? "border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-900 dark:text-emerald-100"
+          : "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/50 text-red-900 dark:text-red-200"
       }`}
     >
       {isRegistered ? (
@@ -143,7 +143,7 @@ export function VerifyReceipt({ fileHash }: Props) {
                 href={contractExplorerUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-lg border border-emerald-300 px-3 py-1 text-xs font-semibold text-emerald-900"
+                className="rounded-lg border border-emerald-300 dark:border-emerald-700 px-3 py-1 text-xs font-semibold text-emerald-900 dark:text-emerald-300"
               >
                 Contract in explorer
               </a>
@@ -153,7 +153,7 @@ export function VerifyReceipt({ fileHash }: Props) {
                 href={eventSearchUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-lg border border-emerald-300 px-3 py-1 text-xs font-semibold text-emerald-900"
+                className="rounded-lg border border-emerald-300 dark:border-emerald-700 px-3 py-1 text-xs font-semibold text-emerald-900 dark:text-emerald-300"
               >
                 Open contract events
               </a>
@@ -163,13 +163,13 @@ export function VerifyReceipt({ fileHash }: Props) {
                 href={issuerSearchUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-lg border border-emerald-300 px-3 py-1 text-xs font-semibold text-emerald-900"
+                className="rounded-lg border border-emerald-300 dark:border-emerald-700 px-3 py-1 text-xs font-semibold text-emerald-900 dark:text-emerald-300"
               >
                 Search registrant
               </a>
             ) : null}
           </div>
-          <p className="text-xs text-emerald-800/80">
+          <p className="text-xs text-emerald-800/80 dark:text-emerald-300/80">
             Tip: Open Contract events, then use BaseScan's event filter/search
             to find this hash in topics.
           </p>
@@ -183,8 +183,10 @@ export function VerifyReceipt({ fileHash }: Props) {
             This file&rsquo;s fingerprint was not found in the on-chain
             registry.
           </p>
-          <p className="text-xs text-red-900/80">Common reasons:</p>
-          <ul className="list-disc pl-4 text-xs text-red-900/80 space-y-1">
+          <p className="text-xs text-red-900/80 dark:text-red-300/80">
+            Common reasons:
+          </p>
+          <ul className="list-disc pl-4 text-xs text-red-900/80 dark:text-red-300/80 space-y-1">
             <li>The receipt has not been registered yet.</li>
             <li>
               The file was modified, re-saved, or renamed after registration —
@@ -193,7 +195,7 @@ export function VerifyReceipt({ fileHash }: Props) {
             </li>
             <li>The file is a copy and not the original download.</li>
           </ul>
-          <p className="text-xs text-red-900/80">
+          <p className="text-xs text-red-900/80 dark:text-red-300/80">
             Try uploading the original, unmodified file exactly as it was
             downloaded.
           </p>
@@ -203,11 +205,11 @@ export function VerifyReceipt({ fileHash }: Props) {
                 href={contractExplorerUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex rounded-lg border border-red-300 px-3 py-1 text-xs font-semibold text-red-900"
+                className="inline-flex rounded-lg border border-red-300 dark:border-red-700 px-3 py-1 text-xs font-semibold text-red-900 dark:text-red-300"
               >
                 Open contract in explorer
               </a>
-              <p className="text-xs text-red-900/80">
+              <p className="text-xs text-red-900/80 dark:text-red-300/80">
                 Tip: This link opens the contract page where you can review
                 history, logs, and related transactions.
               </p>

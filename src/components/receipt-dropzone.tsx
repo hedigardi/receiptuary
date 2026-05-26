@@ -57,15 +57,17 @@ export function ReceiptDropzone({ onHashed }: Props) {
       <button
         type="button"
         {...getRootProps()}
-        className="w-full rounded-2xl border-2 border-dashed border-[var(--card-border)] bg-[var(--card)] p-10 text-left transition hover:border-[var(--accent)]"
+        className="w-full rounded-2xl border-2 border-dashed border-[var(--card-border)] bg-[var(--card)] p-10 text-left transition hover:border-[var(--accent)] cursor-pointer"
       >
         <input {...getInputProps()} />
         <p className="font-[var(--font-display)] text-xl font-semibold">
           Receipt file (PDF)
         </p>
-        <p className="mt-2 text-sm text-stone-600">{hint}</p>
+        <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">
+          {hint}
+        </p>
       </button>
-      <p className="text-xs text-stone-500">
+      <p className="text-xs text-stone-500 dark:text-stone-400">
         Use the original file exactly as downloaded. Re-saving or modifying the
         file — even without visible changes — will produce a different
         fingerprint and cause verification to fail.

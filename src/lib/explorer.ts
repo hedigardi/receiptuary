@@ -89,7 +89,8 @@ export function getNetworkBadge(networkName: string): {
     return {
       label: normalized,
       dotClass: "bg-emerald-600",
-      badgeClass: "bg-emerald-50 text-emerald-900 border-emerald-300",
+      badgeClass:
+        "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700",
     };
   }
 
@@ -97,14 +98,16 @@ export function getNetworkBadge(networkName: string): {
     return {
       label: "hardhat (local)",
       dotClass: "bg-stone-500",
-      badgeClass: "bg-stone-100 text-stone-800 border-stone-300",
+      badgeClass:
+        "bg-stone-100 dark:bg-stone-800/60 text-stone-800 dark:text-stone-300 border-stone-300 dark:border-stone-600",
     };
   }
 
   return {
     label: normalized,
     dotClass: "bg-amber-500",
-    badgeClass: "bg-amber-50 text-amber-900 border-amber-300",
+    badgeClass:
+      "bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-700",
   };
 }
 
