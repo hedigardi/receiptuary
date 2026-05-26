@@ -38,7 +38,6 @@ export function RegisterReceipt({ fileHash }: Props) {
   const { address: userAddress, isConnected } = useAccount();
   const chainId = useChainId();
   const [issuerName, setIssuerName] = useState("");
-  const [referenceId, setReferenceId] = useState("");
   const [acceptedFee, setAcceptedFee] = useState(false);
   const [copyState, setCopyState] = useState<"idle" | "done">("idle");
   const {
@@ -92,6 +91,16 @@ export function RegisterReceipt({ fileHash }: Props) {
     },
   });
 
+  const { data: isIssuerApproved } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: RECEIPTUARY_ABI,
+    functionName: "isIssuerApproved",
+    args: [userAddress ?? ZERO_ADDRESS],
+    query: {
+      enabled: IS_CONTRACT_CONFIGURED && !!userAddress,
+    },
+  });
+
   const { isLoading: isApproveConfirming, isSuccess: isApproveSuccess } =
     useWaitForTransactionReceipt({
       hash: approveTxHash,
@@ -110,6 +119,14 @@ export function RegisterReceipt({ fileHash }: Props) {
     // After approve is mined, refresh allowance/balance so CTA states update immediately.
     void refetchAllowance();
     void refetchTokenBalance();
+
+    // Some RPC/indexers can lag briefly right after confirmation.
+    const retryTimer = window.setTimeout(() => {
+      void refetchAllowance();
+      void refetchTokenBalance();
+    }, 1500);
+
+    return () => window.clearTimeout(retryTimer);
   }, [isApproveSuccess, refetchAllowance, refetchTokenBalance]);
 
   const resolvedSymbol = tokenSymbol || PAYMENT_TOKEN_SYMBOL_FALLBACK;
@@ -138,6 +155,7 @@ export function RegisterReceipt({ fileHash }: Props) {
   const registerTechnicalError = registerError
     ? getTechnicalErrorDetails(registerError)
     : null;
+  const hasIssuerApproval = isIssuerApproved === true;
 
   const submitDisabled =
     !IS_CONTRACT_CONFIGURED ||
@@ -150,6 +168,7 @@ export function RegisterReceipt({ fileHash }: Props) {
     isApproveConfirming ||
     isRegisterPending ||
     isRegisterConfirming ||
+    !hasIssuerApproval ||
     !hasEnoughAllowance ||
     !hasEnoughBalance;
 
@@ -164,8 +183,57 @@ export function RegisterReceipt({ fileHash }: Props) {
     isApproveConfirming ||
     isRegisterPending ||
     isRegisterConfirming ||
+    !hasIssuerApproval ||
     hasEnoughAllowance ||
     !hasEnoughBalance;
+
+  const submitBlockers = useMemo(() => {
+    const blockers: string[] = [];
+
+    if (!isConnected) {
+      blockers.push("Connect your wallet.");
+    }
+    if (!fileHash) {
+      blockers.push("Upload a receipt file first.");
+    }
+    if (!issuerName.trim()) {
+      blockers.push("Enter issuer name.");
+    }
+    if (!acceptedFee) {
+      blockers.push("Accept the fee checkbox.");
+    }
+    if (!hasIssuerApproval) {
+      blockers.push("Wallet is not allowlisted as issuer.");
+    }
+    if (!hasEnoughBalance) {
+      blockers.push(`Insufficient ${resolvedSymbol} balance.`);
+    }
+    if (!hasEnoughAllowance) {
+      blockers.push(`Approve ${feeDisplay} ${resolvedSymbol} first.`);
+    }
+    if (isApprovePending || isApproveConfirming) {
+      blockers.push("Approval is still confirming on-chain.");
+    }
+    if (isRegisterPending || isRegisterConfirming) {
+      blockers.push("A register transaction is already in progress.");
+    }
+
+    return blockers;
+  }, [
+    acceptedFee,
+    feeDisplay,
+    fileHash,
+    hasEnoughAllowance,
+    hasEnoughBalance,
+    hasIssuerApproval,
+    isApproveConfirming,
+    isApprovePending,
+    isConnected,
+    isRegisterConfirming,
+    isRegisterPending,
+    issuerName,
+    resolvedSymbol,
+  ]);
 
   const handleApprove = () => {
     if (approveDisabled) {
@@ -192,7 +260,7 @@ export function RegisterReceipt({ fileHash }: Props) {
       address: CONTRACT_ADDRESS,
       abi: RECEIPTUARY_ABI,
       functionName: "registerReceipt",
-      args: [fileHash, issuerName.trim(), referenceId.trim()],
+      args: [fileHash, issuerName.trim()],
     });
   };
 
@@ -220,11 +288,18 @@ export function RegisterReceipt({ fileHash }: Props) {
       </h3>
 
       {!IS_PAID_REGISTRATION_ENABLED ? (
-        <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+        <div className="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/60 p-3 text-sm text-amber-900 dark:text-amber-300">
           Paid registration is not fully configured. Add
           NEXT_PUBLIC_USDC_TOKEN_ADDRESS, NEXT_PUBLIC_RECEIPTUARY_FEE_RECIPIENT,
           and NEXT_PUBLIC_RECEIPTUARY_FEE_AMOUNT to your env file.
         </div>
+      ) : null}
+
+      {isConnected && !hasIssuerApproval ? (
+        <p className="text-xs text-amber-700 dark:text-amber-300">
+          This wallet is not approved as an issuer. Ask admin to allowlist your
+          address before registering receipts.
+        </p>
       ) : null}
 
       <div className="rounded-xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 p-3 text-xs text-emerald-900 dark:text-emerald-300">
@@ -248,18 +323,6 @@ export function RegisterReceipt({ fileHash }: Props) {
         />
       </label>
 
-      <label className="block">
-        <span className="mb-1 block text-sm text-stone-700 dark:text-stone-300">
-          Reference ID (optional)
-        </span>
-        <input
-          className="w-full rounded-xl border border-[var(--card-border)] bg-white dark:bg-[var(--card)] px-3 py-2 text-sm outline-none ring-[var(--accent)] transition focus:ring-2 dark:text-[var(--foreground)]"
-          value={referenceId}
-          onChange={(event) => setReferenceId(event.target.value)}
-          placeholder="e.g. INV-2026-001"
-        />
-      </label>
-
       <label className="flex items-start gap-2 rounded-xl border border-[var(--card-border)] bg-white dark:bg-[var(--card)] px-3 py-2 text-xs text-stone-700 dark:text-stone-300">
         <input
           type="checkbox"
@@ -273,14 +336,19 @@ export function RegisterReceipt({ fileHash }: Props) {
         </span>
       </label>
 
+      <p className="text-xs text-stone-500 dark:text-stone-400">
+        Privacy note: only the file hash and issuer identity are anchored
+        on-chain. Do not include personal data in issuer naming.
+      </p>
+
       {!isConnected ? (
-        <p className="text-xs text-amber-700">
+        <p className="text-xs text-amber-700 dark:text-amber-300">
           Connect your wallet to approve payment and register a receipt.
         </p>
       ) : null}
 
       {isConnected && !hasEnoughBalance ? (
-        <p className="text-xs text-amber-700">
+        <p className="text-xs text-amber-700 dark:text-amber-300">
           Your wallet does not have enough {resolvedSymbol} to pay the service
           fee.
         </p>
@@ -300,8 +368,9 @@ export function RegisterReceipt({ fileHash }: Props) {
               : `Approve ${feeDisplay} ${resolvedSymbol}`}
         </button>
       ) : isConnected ? (
-        <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900">
-          Allowance ready. You can complete registration now.
+        <p className="rounded-xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 px-3 py-2 text-xs font-semibold text-emerald-900 dark:text-emerald-300">
+          Payment approval is complete. You can now click &quot;Pay and register
+          receipt&quot;.
         </p>
       ) : null}
 
@@ -316,6 +385,17 @@ export function RegisterReceipt({ fileHash }: Props) {
             ? "Writing to blockchain"
             : "Pay and register receipt"}
       </button>
+
+      {submitDisabled && submitBlockers.length > 0 ? (
+        <div className="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/60 p-3 text-xs text-amber-900 dark:text-amber-300">
+          <p className="font-semibold">Complete these steps to continue:</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4">
+            {submitBlockers.map((blocker) => (
+              <li key={blocker}>{blocker}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {isRegisterSuccess ? (
         <p className="text-sm text-[var(--accent)]">
@@ -371,10 +451,10 @@ export function RegisterReceipt({ fileHash }: Props) {
       ) : null}
 
       {approveError ? (
-        <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+        <div className="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/60 p-3 text-sm text-amber-900 dark:text-amber-300">
           <p>{approveFriendlyError}</p>
           {approveTechnicalError ? (
-            <details className="mt-2 text-xs text-amber-900/80">
+            <details className="mt-2 text-xs text-amber-900/80 dark:text-amber-300/80">
               <summary className="cursor-pointer">Technical details</summary>
               <p className="mt-1 break-all">{approveTechnicalError}</p>
             </details>
@@ -383,10 +463,10 @@ export function RegisterReceipt({ fileHash }: Props) {
       ) : null}
 
       {registerError ? (
-        <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+        <div className="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/60 p-3 text-sm text-amber-900 dark:text-amber-300">
           <p>{registerFriendlyError}</p>
           {registerTechnicalError ? (
-            <details className="mt-2 text-xs text-amber-900/80">
+            <details className="mt-2 text-xs text-amber-900/80 dark:text-amber-300/80">
               <summary className="cursor-pointer">Technical details</summary>
               <p className="mt-1 break-all">{registerTechnicalError}</p>
             </details>

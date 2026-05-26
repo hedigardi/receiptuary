@@ -6,9 +6,13 @@ import { calculateFileHash } from "@/lib/crypto";
 
 type Props = {
   onHashed: (file: File, hash: `0x${string}`) => void;
+  mode: "issuer" | "verifier";
 };
 
-export function ReceiptDropzone({ onHashed }: Props) {
+const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_PDF_SIZE_LABEL = "10 MB";
+
+export function ReceiptDropzone({ onHashed, mode }: Props) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -35,10 +39,18 @@ export function ReceiptDropzone({ onHashed }: Props) {
     [onHashed],
   );
 
+  const onDropRejected = useCallback(() => {
+    setLocalError(
+      `File rejected. Please upload a PDF up to ${MAX_PDF_SIZE_LABEL}.`,
+    );
+  }, []);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
+    onDropRejected,
     // Only accept receipt PDFs to keep hashing/verifier UX predictable.
     accept: { "application/pdf": [".pdf"] },
+    maxSize: MAX_PDF_SIZE_BYTES,
     multiple: false,
   });
 
@@ -70,10 +82,15 @@ export function ReceiptDropzone({ onHashed }: Props) {
         </p>
       </button>
       <p className="text-xs text-stone-500 dark:text-stone-400">
-        Use the original file exactly as downloaded. Re-saving or modifying the
-        file — even without visible changes — will produce a different
-        fingerprint and cause verification to fail.
+        {mode === "issuer"
+          ? "Use the original file exactly as downloaded. Re-saving or modifying the file can change the fingerprint and break later verification."
+          : "Upload the exact receipt file you want to verify."}
       </p>
+      {mode === "issuer" ? (
+        <p className="text-xs text-stone-500 dark:text-stone-400">
+          Max file size: {MAX_PDF_SIZE_LABEL}.
+        </p>
+      ) : null}
       {localError ? (
         <p className="text-sm text-[var(--warn)]">{localError}</p>
       ) : null}

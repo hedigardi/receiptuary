@@ -1,17 +1,10 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
+  if (!resolvedTheme) {
     // Prevent hydration mismatch while `next-themes` resolves system preference on client.
     return (
       <div className="h-8 w-8 rounded-full border border-[var(--card-border)] bg-[var(--card)]" />

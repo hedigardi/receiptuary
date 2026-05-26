@@ -8,11 +8,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:app:smoke": "npm run lint && npm run build",
+    "test:contract": "hardhat test",
+    "test": "npm run test:contract && npm run test:app:smoke",
     "preflight:prod": "node scripts/preflight-production.mjs",
     "contract:compile": "hardhat compile",
     "contract:deploy:base": "hardhat run scripts/deploy.ts --network baseSepolia",
     "contract:deploy:base:sepolia": "hardhat run scripts/deploy.ts --network baseSepolia",
-    "contract:deploy:base:mainnet": "hardhat run scripts/deploy.ts --network base"
+    "contract:deploy:base:mainnet": "hardhat run scripts/deploy.ts --network base",
+    "contract:issuer:approve:base:sepolia": "hardhat run scripts/set-issuer-approval.ts --network baseSepolia",
+    "contract:issuer:approve:base:mainnet": "hardhat run scripts/set-issuer-approval.ts --network base"
   },
   "dependencies": {
     "@rainbow-me/rainbowkit": "2.2.11",
@@ -28,6 +33,7 @@
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers": "^4.0.12",
+    "@nomicfoundation/hardhat-mocha": "^3.0.20",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

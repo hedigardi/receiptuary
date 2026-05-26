@@ -2,7 +2,6 @@ import type { Address } from "viem";
 import {
   DEPLOYED_CONTRACT_ADDRESS,
   DEPLOYED_NETWORK,
-  DEPLOYED_RECEIPTUARY_ABI,
 } from "@/lib/generated/receiptuary.generated";
 import { normalizeNetworkName } from "@/lib/explorer";
 
@@ -11,7 +10,6 @@ const FALLBACK_ABI = [
     inputs: [
       { internalType: "bytes32", name: "fileHash", type: "bytes32" },
       { internalType: "string", name: "issuerName", type: "string" },
-      { internalType: "string", name: "referenceId", type: "string" },
     ],
     name: "registerReceipt",
     outputs: [],
@@ -23,7 +21,6 @@ const FALLBACK_ABI = [
     name: "getReceipt",
     outputs: [
       { internalType: "string", name: "issuerName", type: "string" },
-      { internalType: "string", name: "referenceId", type: "string" },
       { internalType: "uint256", name: "timestamp", type: "uint256" },
       { internalType: "address", name: "registeredBy", type: "address" },
       { internalType: "bool", name: "isRegistered", type: "bool" },
@@ -31,14 +28,37 @@ const FALLBACK_ABI = [
     stateMutability: "view",
     type: "function",
   },
+  {
+    inputs: [{ internalType: "address", name: "issuer", type: "address" }],
+    name: "isIssuerApproved",
+    outputs: [{ internalType: "bool", name: "", type: "bool" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "owner",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "address", name: "issuer", type: "address" },
+      { internalType: "bool", name: "approved", type: "bool" },
+    ],
+    name: "setIssuerApproval",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
 ] as const;
 
 /**
- * Prefers generated ABI from deploy script and falls back to a minimal ABI
- * so the app can still render in partially configured environments.
+ * Uses a hardened, minimal ABI to avoid frontend/runtime mismatches when
+ * generated ABI is stale after contract security upgrades.
  */
-export const RECEIPTUARY_ABI =
-  DEPLOYED_RECEIPTUARY_ABI.length > 0 ? DEPLOYED_RECEIPTUARY_ABI : FALLBACK_ABI;
+export const RECEIPTUARY_ABI = FALLBACK_ABI;
 
 const deployedNetworkName = normalizeNetworkName(DEPLOYED_NETWORK);
 /**

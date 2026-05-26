@@ -9,6 +9,7 @@ It hashes PDF receipts locally in the browser with SHA-256, anchors the hash on-
 - Paid registration: enabled (token approval + registration)
 - Payment model: fixed fee per registration (configured via env)
 - Upload format: PDF only
+- Issuer protection: only owner-approved issuer wallets can register
 
 ## Features
 
@@ -80,6 +81,18 @@ Compile:
 npm run contract:compile
 ```
 
+Run tests:
+
+```bash
+npm run test:contract
+```
+
+Run app smoke checks (lint + production build):
+
+```bash
+npm run test:app:smoke
+```
+
 Run production preflight (recommended before deploy):
 
 ```bash
@@ -104,6 +117,17 @@ Required deploy env vars:
 - `RECEIPTUARY_FEE_RECIPIENT`
 - `RECEIPTUARY_FEE_AMOUNT`
 
+Issuer allowlist management env vars:
+
+- `ISSUER_ADDRESS` (wallet to approve/revoke)
+- `ISSUER_APPROVED` (`true` or `false`, defaults to `true`)
+- `RECEIPTUARY_CONTRACT_ADDRESS` (optional override; falls back to `NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS`)
+
+Approve/revoke issuer commands:
+
+- Base Sepolia: `npm run contract:issuer:approve:base:sepolia`
+- Base Mainnet: `npm run contract:issuer:approve:base:mainnet`
+
 After deploy, address + ABI are auto-synced to:
 
 - `src/lib/generated/receiptuary.generated.ts`
@@ -119,8 +143,9 @@ You can override contract address in frontend via:
 1. Upload PDF
 2. Local SHA-256 hash is generated
 3. Approve token spend in wallet
-4. Confirm registration transaction
-5. Fee is transferred to configured recipient
+4. Wallet must be owner-approved as issuer
+5. Confirm registration transaction
+6. Fee is transferred to configured recipient
 
 ### Verifier flow
 
@@ -139,3 +164,16 @@ Implemented SEO pieces:
 - Web manifest: `public/site.webmanifest`
 
 Set `NEXT_PUBLIC_SITE_URL` to your real production domain for canonical, sitemap host and robots host.
+
+## CI and branch protection
+
+This repository includes a GitHub Actions workflow at `.github/workflows/ci.yml`.
+It runs `npm test` (contract tests + app smoke checks) on pull requests and pushes.
+
+Recommended branch protection for `main` before customer go-live:
+
+1. GitHub repo settings -> Branches -> Add branch protection rule for `main`.
+2. Enable `Require a pull request before merging`.
+3. Enable `Require status checks to pass before merging`.
+4. Add required check: `Lint, build, and contract tests`.
+5. Optional but recommended: enable `Require branches to be up to date before merging`.

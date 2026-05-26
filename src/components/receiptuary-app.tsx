@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useAccount } from "wagmi";
+import { IssuerAllowlistManager } from "@/components/issuer-allowlist-manager";
 import { IssuerAdminPanel } from "@/components/issuer-admin-panel";
 import { ReceiptDropzone } from "@/components/receipt-dropzone";
 import { RegisterReceipt } from "@/components/register-receipt";
@@ -28,13 +29,18 @@ import {
 import { truncateHash } from "@/lib/crypto";
 
 type Mode = "issuer" | "verifier";
+type LegalModalKind = "privacy" | "terms";
 const LOGO_SRC = "/logo.png?v=20260524-2";
 
 type ReceiptuaryAppProps = {
   adminRoute?: boolean;
+  myReceiptsRoute?: boolean;
 };
 
-export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
+export function ReceiptuaryApp({
+  adminRoute = false,
+  myReceiptsRoute = false,
+}: ReceiptuaryAppProps) {
   // `mode` switches both explanatory copy and the right-side action panel.
   const [mode, setMode] = useState<Mode>("verifier");
   const [showChainDetails, setShowChainDetails] = useState(false);
@@ -42,6 +48,7 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
   const [fileName, setFileName] = useState<string>("");
   const [fileHash, setFileHash] = useState<`0x${string}` | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [legalModal, setLegalModal] = useState<LegalModalKind | null>(null);
   const {
     address: walletAddress,
     isConnected,
@@ -55,9 +62,11 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
   const isWalletOnWrongChain =
     isConnected && !!deployedChainId && connectedChainId !== deployedChainId;
   const isAdminView = adminRoute;
-  const mainClassName = isAdminView
-    ? "grid-overlay flex flex-1 items-start justify-center px-4 py-10 md:px-10"
-    : "grid-overlay flex min-h-[100svh] flex-1 items-center justify-center px-4 py-10 md:px-10";
+  const isMyReceiptsView = myReceiptsRoute;
+  const mainClassName =
+    isAdminView || isMyReceiptsView
+      ? "grid-overlay flex flex-1 items-start justify-center px-4 py-10 md:px-10"
+      : "grid-overlay flex min-h-[100svh] flex-1 items-center justify-center px-4 py-10 md:px-10";
 
   // Step cards are mode-specific so issuer/verifier users get task-relevant guidance.
   const flowSteps =
@@ -224,6 +233,27 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    if (!legalModal) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setLegalModal(null);
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [legalModal]);
+
   const handleLogoRefresh = useCallback(() => {
     // Reset local UI state before a hard reload so stale mode/hash does not linger.
     setMode("verifier");
@@ -237,6 +267,8 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
   }, []);
 
   const currentYear = new Date().getFullYear();
+  const isPrivacyModalOpen = legalModal === "privacy";
+  const isTermsModalOpen = legalModal === "terms";
 
   return (
     <>
@@ -267,17 +299,27 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
             </div>
 
             <div className="relative isolate flex w-full flex-wrap items-center justify-end gap-2 gap-y-2 self-start md:w-auto md:flex-nowrap md:self-auto">
-              {isConnected || isAdminView ? (
+              {isConnected || isAdminView || isMyReceiptsView ? (
                 <div className="relative z-20 inline-flex shrink-0 items-center gap-1 rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-1">
                   <Link
                     href="/"
                     className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
-                      !isAdminView
+                      !isAdminView && !isMyReceiptsView
                         ? "bg-[var(--accent)] text-white"
                         : "text-stone-700 dark:text-stone-300"
                     }`}
                   >
                     Home
+                  </Link>
+                  <Link
+                    href="/my-receipts"
+                    className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
+                      isMyReceiptsView
+                        ? "bg-[var(--accent)] text-white"
+                        : "text-stone-700 dark:text-stone-300"
+                    }`}
+                  >
+                    My receipts
                   </Link>
                   <Link
                     href="/admin"
@@ -496,13 +538,50 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
           {isAdminView ? (
             <section className="mt-6">
               {walletAddress ? (
+                <div className="space-y-4">
+                  <IssuerAllowlistManager
+                    walletAddress={walletAddress}
+                    wrongChain={isWalletOnWrongChain}
+                  />
+                  <article className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-5 text-sm text-stone-700 dark:text-stone-300">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">
+                      Admin tools
+                    </p>
+                    <h2 className="mt-1 font-[var(--font-display)] text-xl text-stone-900 dark:text-stone-100">
+                      Admin workspace
+                    </h2>
+                    <p className="mt-2">
+                      This page is dedicated to access control and other admin
+                      tasks.
+                    </p>
+                    <p className="mt-2">
+                      Wallet receipt history, search and CSV export are now in
+                      the My receipts page.
+                    </p>
+                    <Link
+                      href="/my-receipts"
+                      className="mt-3 inline-flex rounded-lg border border-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-[var(--accent)] transition hover:bg-[var(--accent-soft)]"
+                    >
+                      Open My receipts
+                    </Link>
+                  </article>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--accent-soft)] p-5 text-sm text-stone-700 dark:text-stone-300">
+                  Connect your wallet to open Issuer Admin.
+                </div>
+              )}
+            </section>
+          ) : isMyReceiptsView ? (
+            <section className="mt-6">
+              {walletAddress ? (
                 <IssuerAdminPanel
                   walletAddress={walletAddress}
                   wrongChain={isWalletOnWrongChain}
                 />
               ) : (
                 <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--accent-soft)] p-5 text-sm text-stone-700 dark:text-stone-300">
-                  Connect your wallet to open Issuer Admin.
+                  Connect your wallet to open My receipts.
                 </div>
               )}
             </section>
@@ -705,7 +784,7 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
                         type="button"
                         className={`rounded-xl px-3 py-2 text-sm font-semibold transition cursor-pointer ${
                           mode === "verifier"
-                            ? "bg-[var(--accent)] text-white dark:text-[#0f1613]"
+                            ? "bg-sky-600 text-white"
                             : "bg-transparent text-stone-700 dark:text-stone-300"
                         }`}
                         onClick={() => setMode("verifier")}
@@ -730,7 +809,7 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
                     </div>
                   ) : null}
 
-                  <ReceiptDropzone onHashed={handleHashed} />
+                  <ReceiptDropzone onHashed={handleHashed} mode={mode} />
 
                   {fileHash ? (
                     <div className="rounded-2xl border border-[var(--card-border)] bg-white dark:bg-[var(--card)] p-4">
@@ -824,8 +903,32 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
                       a: "The fee is charged to the issuer wallet at the time of registration to prevent spam and sustainably fund the service. Verification is always free.",
                     },
                     {
-                      q: "Is this GDPR compliant?",
-                      a: "Yes. Because files never leave your device and only a non-reversible hash is stored on-chain, no personal data or file content is shared with any server or third party.",
+                      q: "Who can register receipts?",
+                      a: "Only issuer wallets approved by the contract owner can register receipts. If your wallet is not approved, ask your admin to allowlist it first.",
+                    },
+                    {
+                      q: "Why do I sometimes need to approve USDC again?",
+                      a: "Registration uses ERC-20 allowance. If your allowance is fully consumed by previous registrations, you need to approve again before creating new proofs.",
+                    },
+                    {
+                      q: "What if I cancel in my wallet?",
+                      a: "No on-chain changes are made when you reject the request in your wallet. You can retry the action whenever you are ready.",
+                    },
+                    {
+                      q: "Can the same receipt be registered twice?",
+                      a: "No. The same file hash can only be registered once. Duplicate registration attempts are rejected by the contract.",
+                    },
+                    {
+                      q: "What if my wallet is on the wrong network?",
+                      a: "Write actions like approve and register require the deployment network. If your wallet is on a different chain, switch to the required network and try again.",
+                    },
+                    {
+                      q: "What can admins do in the dashboard?",
+                      a: "Admins (contract owner) can approve or revoke issuer wallets in Access Control. My receipts is for viewing, searching, and exporting wallet-linked receipt records.",
+                    },
+                    {
+                      q: "How should we handle GDPR and data protection obligations?",
+                      a: "Receiptuary is designed around data minimization: files stay local and only cryptographic proof data is written on-chain. You are responsible for ensuring compliant use in your jurisdiction and for avoiding personal data in issuer-visible fields.",
                     },
                   ].map(({ q, a }) => (
                     <details
@@ -867,17 +970,34 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
             <p className="text-xs font-medium tracking-[0.08em] text-stone-600 dark:text-stone-400">
               Copyright {currentYear} Receiptuary. All rights reserved.
             </p>
-            <p className="text-xs text-stone-700 dark:text-stone-300">
-              A product from{" "}
-              <a
-                href="https://hedigardi.com"
-                target="_blank"
-                rel="noreferrer"
-                className="font-semibold text-[var(--accent)] transition-colors hover:text-emerald-700"
+            <div className="flex flex-wrap items-center gap-3 text-xs text-stone-700 dark:text-stone-300">
+              <button
+                type="button"
+                onClick={() => setLegalModal("privacy")}
+                className="font-medium text-[var(--accent)] transition-colors hover:text-emerald-700 cursor-pointer"
               >
-                hedigardi.com
-              </a>
-            </p>
+                Privacy
+              </button>
+              <button
+                type="button"
+                onClick={() => setLegalModal("terms")}
+                className="font-medium text-[var(--accent)] transition-colors hover:text-emerald-700 cursor-pointer"
+              >
+                Terms
+              </button>
+              <span className="text-stone-400">|</span>
+              <p>
+                A product from{" "}
+                <a
+                  href="https://hedigardi.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-[var(--accent)] transition-colors hover:text-emerald-700"
+                >
+                  hedigardi.com
+                </a>
+              </p>
+            </div>
           </div>
         </div>
       </footer>
@@ -886,6 +1006,121 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
       <div className="fixed top-4 right-4 z-50">
         <ThemeToggle />
       </div>
+
+      {legalModal ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="legal-modal-title"
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-stone-950/55 p-4 backdrop-blur-sm"
+          onClick={() => setLegalModal(null)}
+        >
+          <div
+            className="w-full max-w-3xl overflow-hidden rounded-3xl border border-[var(--card-border)] bg-[var(--card)] shadow-[0_30px_120px_rgba(41,33,18,0.28)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3 border-b border-[var(--card-border)] bg-gradient-to-r from-[var(--accent-soft)]/80 to-emerald-50/80 dark:to-emerald-950/30 px-5 py-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">
+                  Legal
+                </p>
+                <h2
+                  id="legal-modal-title"
+                  className="mt-1 font-[var(--font-display)] text-xl text-stone-900 dark:text-stone-100"
+                >
+                  {isPrivacyModalOpen ? "Privacy Policy" : "Terms of Use"}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLegalModal(null)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--card-border)] text-stone-700 transition hover:bg-white/70 dark:text-stone-300 dark:hover:bg-white/10"
+                aria-label="Close legal modal"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="max-h-[70vh] overflow-y-auto px-5 py-4 text-sm text-stone-700 dark:text-stone-300">
+              {isPrivacyModalOpen ? (
+                <div className="space-y-4">
+                  <p>
+                    Receiptuary is designed to minimize data handling. Uploaded
+                    files are processed in your browser to compute a SHA-256
+                    hash and are not sent to a Receiptuary backend.
+                  </p>
+                  <p>
+                    Blockchain transactions are public and permanent. Wallet
+                    addresses, transaction metadata, and registered proof
+                    records may be visible to anyone through blockchain
+                    explorers.
+                  </p>
+                  <p>
+                    Do not include personal data or sensitive information in
+                    issuer names or any user-entered fields that may become
+                    publicly visible.
+                  </p>
+                  <p>
+                    You are responsible for determining whether your use of
+                    Receiptuary complies with applicable law, including data
+                    protection obligations in your jurisdiction.
+                  </p>
+                </div>
+              ) : null}
+
+              {isTermsModalOpen ? (
+                <div className="space-y-4">
+                  <p>
+                    Receiptuary provides blockchain-based proof registration and
+                    verification tools. The service is provided on an &quot;as
+                    is&quot; basis without warranties of uninterrupted
+                    availability.
+                  </p>
+                  <p>
+                    You are solely responsible for the legality and accuracy of
+                    content you register, including issuer names and associated
+                    business use.
+                  </p>
+                  <p>
+                    You must not use the service to impersonate organizations,
+                    submit fraudulent records, or process data in violation of
+                    applicable law.
+                  </p>
+                  <p>
+                    You are responsible for wallet security, transaction
+                    approvals, and all network fees. Blockchain transactions are
+                    irreversible.
+                  </p>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--card-border)] px-5 py-3 text-xs">
+              <p className="text-stone-500 dark:text-stone-400">
+                You can also open the standalone legal page directly.
+              </p>
+              <Link
+                href={isPrivacyModalOpen ? "/privacy" : "/terms"}
+                className="inline-flex rounded-lg border border-[var(--card-border)] px-3 py-1.5 font-semibold text-[var(--accent)] transition hover:bg-[var(--accent-soft)]"
+              >
+                Open {isPrivacyModalOpen ? "Privacy" : "Terms"} page
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* Back to top – bottom-right */}
       <button
