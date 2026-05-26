@@ -62,6 +62,7 @@ Copy-Item .env.example .env
 
 `NEXT_PUBLIC_RECEIPTUARY_DEPLOYMENT_BLOCK` limits issuer admin event scans to contract lifetime and reduces RPC rate-limit errors.
 `NEXT_PUBLIC_BASE_FALLBACK_RPC_URL` is used as automatic failover for issuer admin log reads if the primary Base RPC is rate-limited.
+If your local `.env.example` does not include these optional keys yet, add them manually to `.env`.
 
 4. Start app
 
@@ -97,6 +98,7 @@ Legacy alias:
 Required deploy env vars:
 
 - `DEPLOYER_PRIVATE_KEY`
+- `BASE_SEPOLIA_RPC_URL` (for Base Sepolia deploy)
 - `BASE_MAINNET_RPC_URL` (for mainnet deploy)
 - `USDC_TOKEN_ADDRESS`
 - `RECEIPTUARY_FEE_RECIPIENT`
