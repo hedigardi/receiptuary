@@ -48,6 +48,33 @@ type CachedReceiptEventLog = {
   logIndex: number;
 };
 
+type LogChunk = {
+  args: {
+    fileHash?: `0x${string}`;
+    issuerName?: string;
+  };
+  transactionHash?: `0x${string}`;
+  blockNumber?: bigint;
+  logIndex?: number;
+};
+
+type IssuerReadClient = {
+  getBlockNumber: () => Promise<bigint>;
+  getCode: (args: {
+    address: Address;
+    blockNumber: bigint;
+  }) => Promise<`0x${string}` | undefined>;
+  getLogs: (args: {
+    address: Address;
+    event: typeof RECEIPT_REGISTERED_EVENT;
+    args: {
+      registeredBy: Address;
+    };
+    fromBlock: bigint;
+    toBlock: bigint;
+  }) => Promise<LogChunk[]>;
+};
+
 type LoadingProgress = {
   processedChunks: number;
   totalChunks: number;
@@ -260,6 +287,8 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
   const deploymentBlockRef = useRef<bigint | null>(
     parseDeploymentBlockFromEnv(),
   );
+  const primaryReadClient = publicClient as IssuerReadClient | null;
+  const secondaryReadClient = fallbackPublicClient as IssuerReadClient | null;
 
   const walletAddressLower = walletAddress.toLowerCase();
   const cacheKey = useMemo(
@@ -268,7 +297,7 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
   );
 
   const getContractDeploymentBlock = useCallback(async () => {
-    const activeClient = publicClient ?? fallbackPublicClient;
+    const activeClient = primaryReadClient ?? secondaryReadClient;
     if (!activeClient) {
       return 0n;
     }
@@ -308,13 +337,13 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
 
     deploymentBlockRef.current = low;
     return low;
-  }, [fallbackPublicClient, publicClient]);
+  }, [primaryReadClient, secondaryReadClient]);
 
   const getLogsWithRetry = useCallback(
     async (
       fromBlock: bigint,
       toBlock: bigint,
-      activeClient: NonNullable<typeof publicClient>,
+      activeClient: IssuerReadClient,
     ) => {
       if (!activeClient) {
         return [];
@@ -350,7 +379,7 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
   );
 
   const fetchIssuerLogsWithClient = useCallback(
-    async (activeClient: NonNullable<typeof publicClient>) => {
+    async (activeClient: IssuerReadClient) => {
       const latestBlock = await activeClient.getBlockNumber();
       const deploymentBlock = await getContractDeploymentBlock();
       const startBlock =
@@ -472,20 +501,20 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
   );
 
   const fetchIssuerLogs = useCallback(async () => {
-    if (!publicClient) {
+    if (!primaryReadClient) {
       return [];
     }
 
     try {
-      return await fetchIssuerLogsWithClient(publicClient);
+      return await fetchIssuerLogsWithClient(primaryReadClient);
     } catch (primaryError) {
-      if (!isRateLimitError(primaryError) || !fallbackPublicClient) {
+      if (!isRateLimitError(primaryError) || !secondaryReadClient) {
         throw primaryError;
       }
 
-      return await fetchIssuerLogsWithClient(fallbackPublicClient);
+      return await fetchIssuerLogsWithClient(secondaryReadClient);
     }
-  }, [fallbackPublicClient, fetchIssuerLogsWithClient, publicClient]);
+  }, [fetchIssuerLogsWithClient, primaryReadClient, secondaryReadClient]);
 
   const loadReceipts = useCallback(async () => {
     if (!IS_CONTRACT_CONFIGURED || !publicClient || wrongChain) {
@@ -563,7 +592,7 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
         }
 
         const [issuerName, referenceId, timestamp, registeredBy, isRegistered] =
-          call.result as ReceiptTuple;
+          call.result as unknown as ReceiptTuple;
 
         if (
           !isRegistered ||
