@@ -239,7 +239,7 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
     <>
       <main className={mainClassName}>
         <div className="w-full max-w-4xl rounded-3xl border border-[var(--card-border)] bg-[var(--card)]/95 p-6 shadow-[0_30px_120px_rgba(41,33,18,0.15)] backdrop-blur md:p-8">
-          <header className="flex flex-col gap-4 border-b border-[var(--card-border)] pb-5 md:flex-row md:items-center md:justify-between">
+          <header className="flex flex-col gap-4 border-b border-[var(--card-border)] pb-5 md:flex-row md:flex-wrap md:items-center md:justify-between">
             <div>
               <div className="relative">
                 <button
@@ -340,7 +340,7 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
 
                   if (isWalletOnWrongChain) {
                     return (
-                      <div className="flex w-auto shrink-0 flex-col items-end gap-1.5">
+                      <div className="flex w-auto shrink-0 items-center justify-end">
                         <button
                           type="button"
                           onClick={openAccountModal}
@@ -364,9 +364,6 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
                             {account.displayName}
                           </span>
                         </button>
-                        <span className="inline-flex max-w-[min(85vw,22rem)] items-center rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-right text-xs font-semibold text-amber-900 dark:border-amber-600 dark:bg-amber-950/50 dark:text-amber-300">
-                          Switch to {deployedChainLabel} in your wallet
-                        </span>
                       </div>
                     );
                   }
@@ -401,6 +398,14 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
                 }}
               </ConnectButton.Custom>
             </div>
+
+            {isWalletOnWrongChain ? (
+              <div className="flex w-full justify-end md:basis-full md:justify-end md:-mt-2">
+                <span className="inline-flex max-w-[min(90vw,22rem)] items-center rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-right text-xs font-semibold text-amber-900 dark:border-amber-600 dark:bg-amber-950/50 dark:text-amber-300">
+                  Switch to {deployedChainLabel} in your wallet
+                </span>
+              </div>
+            ) : null}
           </header>
 
           {!IS_CONTRACT_CONFIGURED ? (
