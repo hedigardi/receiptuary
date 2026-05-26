@@ -263,7 +263,7 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
               <h1 className="sr-only">Receiptuary - Is it real?</h1>
             </div>
 
-            <div className="relative flex w-full flex-nowrap items-center justify-end gap-2 self-start md:w-auto md:self-auto">
+            <div className="relative flex w-full flex-nowrap items-start justify-end gap-2 self-start md:w-auto md:self-auto">
               {isConnected || isAdminView ? (
                 <div className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-1">
                   <Link
@@ -340,7 +340,7 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
 
                   if (isWalletOnWrongChain) {
                     return (
-                      <div className="relative flex w-auto shrink-0 items-center justify-end pb-11 md:pb-10">
+                      <div className="flex w-auto shrink-0 flex-col items-end gap-1.5">
                         <button
                           type="button"
                           onClick={openAccountModal}
@@ -364,7 +364,7 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
                             {account.displayName}
                           </span>
                         </button>
-                        <span className="absolute right-0 top-full mt-1 inline-flex w-max max-w-[min(85vw,22rem)] items-center rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-right text-xs font-semibold text-amber-900 dark:border-amber-600 dark:bg-amber-950/50 dark:text-amber-300">
+                        <span className="inline-flex max-w-[min(85vw,22rem)] items-center rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-right text-xs font-semibold text-amber-900 dark:border-amber-600 dark:bg-amber-950/50 dark:text-amber-300">
                           Switch to {deployedChainLabel} in your wallet
                         </span>
                       </div>
