@@ -340,7 +340,7 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
 
                   if (isWalletOnWrongChain) {
                     return (
-                      <div className="flex w-auto flex-col items-end gap-1.5">
+                      <div className="relative flex w-auto shrink-0 items-center justify-end">
                         <button
                           type="button"
                           onClick={openAccountModal}
@@ -364,7 +364,7 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
                             {account.displayName}
                           </span>
                         </button>
-                        <span className="inline-flex max-w-full items-center rounded-xl border border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-950/50 px-3 py-2 text-xs font-semibold text-amber-900 dark:text-amber-300">
+                        <span className="absolute right-0 top-full mt-1 inline-flex w-max max-w-[min(85vw,22rem)] items-center rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-right text-xs font-semibold text-amber-900 dark:border-amber-600 dark:bg-amber-950/50 dark:text-amber-300">
                           Switch to {deployedChainLabel} in your wallet
                         </span>
                       </div>
