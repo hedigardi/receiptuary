@@ -23,7 +23,7 @@ type Props = {
   fileHash: `0x${string}`;
 };
 
-type ReceiptTuple = readonly [string, string, bigint, `0x${string}`, boolean];
+type ReceiptTuple = readonly [string, bigint, `0x${string}`, boolean];
 
 export function VerifyReceipt({ fileHash }: Props) {
   const chainId = useChainId();
@@ -95,10 +95,9 @@ export function VerifyReceipt({ fileHash }: Props) {
     );
   }
 
-  const [issuerName, referenceId, timestamp, registeredBy, isRegistered] =
+  const [issuerName, timestamp, registeredBy, isRegistered] =
     // Keep rendering resilient even if read data is temporarily undefined.
     (data as ReceiptTuple | undefined) ?? [
-      "",
       "",
       BigInt(0),
       "0x0000000000000000000000000000000000000000",
@@ -129,11 +128,6 @@ export function VerifyReceipt({ fileHash }: Props) {
           <p>
             Issuer: <span className="font-semibold">{issuerName}</span>
           </p>
-          {referenceId ? (
-            <p>
-              Reference ID: <span className="font-semibold">{referenceId}</span>
-            </p>
-          ) : null}
           <p>
             Registered:{" "}
             {new Date(Number(timestamp) * 1000).toLocaleString("en-US")}
@@ -172,8 +166,8 @@ export function VerifyReceipt({ fileHash }: Props) {
             ) : null}
           </div>
           <p className="text-xs text-emerald-800/80 dark:text-emerald-300/80">
-            Tip: Open Contract events, then use BaseScan's event filter/search
-            to find this hash in topics.
+            Tip: Open Contract events, then use BaseScan&apos;s event
+            filter/search to find this hash in topics.
           </p>
         </div>
       ) : (

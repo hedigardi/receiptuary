@@ -9,6 +9,7 @@ It hashes PDF receipts locally in the browser with SHA-256, anchors the hash on-
 - Paid registration: enabled (token approval + registration)
 - Payment model: fixed fee per registration (configured via env)
 - Upload format: PDF only
+- Issuer protection: only owner-approved issuer wallets can register
 
 ## Features
 
@@ -104,6 +105,17 @@ Required deploy env vars:
 - `RECEIPTUARY_FEE_RECIPIENT`
 - `RECEIPTUARY_FEE_AMOUNT`
 
+Issuer allowlist management env vars:
+
+- `ISSUER_ADDRESS` (wallet to approve/revoke)
+- `ISSUER_APPROVED` (`true` or `false`, defaults to `true`)
+- `RECEIPTUARY_CONTRACT_ADDRESS` (optional override; falls back to `NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS`)
+
+Approve/revoke issuer commands:
+
+- Base Sepolia: `npm run contract:issuer:approve:base:sepolia`
+- Base Mainnet: `npm run contract:issuer:approve:base:mainnet`
+
 After deploy, address + ABI are auto-synced to:
 
 - `src/lib/generated/receiptuary.generated.ts`
@@ -119,8 +131,9 @@ You can override contract address in frontend via:
 1. Upload PDF
 2. Local SHA-256 hash is generated
 3. Approve token spend in wallet
-4. Confirm registration transaction
-5. Fee is transferred to configured recipient
+4. Wallet must be owner-approved as issuer
+5. Confirm registration transaction
+6. Fee is transferred to configured recipient
 
 ### Verifier flow
 

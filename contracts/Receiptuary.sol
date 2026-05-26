@@ -11,23 +11,36 @@ contract Receiptuary {
     // Stored by file hash so verification is an O(1) lookup by bytes32 fingerprint.
     struct Receipt {
         string issuerName;
-        string referenceId;
         uint256 timestamp;
         address registeredBy;
         bool isRegistered;
     }
 
     mapping(bytes32 => Receipt) private _receipts;
+    mapping(address => bool) private _approvedIssuers;
     // Immutable fee configuration is set once at deployment to avoid runtime reconfiguration risk.
     IERC20 public immutable feeToken;
     address public immutable feeRecipient;
     uint256 public immutable feeAmount;
+    address public owner;
 
     event ReceiptRegistered(
         bytes32 indexed fileHash,
         string issuerName,
         address indexed registeredBy
     );
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event IssuerApprovalUpdated(address indexed issuer, bool approved);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Receiptuary: Only owner");
+        _;
+    }
+
+    modifier onlyApprovedIssuer() {
+        require(_approvedIssuers[msg.sender], "Receiptuary: Issuer not approved");
+        _;
+    }
 
     constructor(address feeTokenAddress, address feeRecipientAddress, uint256 feeAmountValue) {
         require(feeTokenAddress != address(0), "Receiptuary: Invalid fee token");
@@ -36,13 +49,14 @@ contract Receiptuary {
         feeToken = IERC20(feeTokenAddress);
         feeRecipient = feeRecipientAddress;
         feeAmount = feeAmountValue;
+        owner = msg.sender;
+        _approvedIssuers[msg.sender] = true;
+
+        emit OwnershipTransferred(address(0), msg.sender);
+        emit IssuerApprovalUpdated(msg.sender, true);
     }
 
-    function registerReceipt(
-        bytes32 fileHash,
-        string calldata issuerName,
-        string calldata referenceId
-    ) external {
+    function registerReceipt(bytes32 fileHash, string calldata issuerName) external onlyApprovedIssuer {
         require(!_receipts[fileHash].isRegistered, "Receiptuary: Hash already registered");
         require(bytes(issuerName).length > 0, "Receiptuary: Issuer name cannot be empty");
 
@@ -54,7 +68,6 @@ contract Receiptuary {
 
         _receipts[fileHash] = Receipt({
             issuerName: issuerName,
-            referenceId: referenceId,
             timestamp: block.timestamp,
             registeredBy: msg.sender,
             isRegistered: true
@@ -67,12 +80,30 @@ contract Receiptuary {
         return (address(feeToken), feeRecipient, feeAmount);
     }
 
+    function setIssuerApproval(address issuer, bool approved) external onlyOwner {
+        require(issuer != address(0), "Receiptuary: Invalid issuer");
+        _approvedIssuers[issuer] = approved;
+
+        emit IssuerApprovalUpdated(issuer, approved);
+    }
+
+    function isIssuerApproved(address issuer) external view returns (bool) {
+        return _approvedIssuers[issuer];
+    }
+
+    function transferOwnership(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "Receiptuary: Invalid owner");
+        address previousOwner = owner;
+        owner = newOwner;
+
+        emit OwnershipTransferred(previousOwner, newOwner);
+    }
+
     function getReceipt(bytes32 fileHash)
         external
         view
         returns (
             string memory issuerName,
-            string memory referenceId,
             uint256 timestamp,
             address registeredBy,
             bool isRegistered
@@ -83,7 +114,6 @@ contract Receiptuary {
         // Return a full snapshot so clients can display issuer details and verification metadata.
         return (
             receipt.issuerName,
-            receipt.referenceId,
             receipt.timestamp,
             receipt.registeredBy,
             receipt.isRegistered

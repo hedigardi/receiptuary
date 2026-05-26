@@ -93,6 +93,10 @@ export function toUserFriendlyError(
     return "Please enter an issuer name before registering.";
   }
 
+  if (normalized.includes("issuer not approved")) {
+    return "This wallet is not approved as an issuer. Ask an admin to allowlist your address.";
+  }
+
   if (
     normalized.includes("nonce too low") ||
     normalized.includes("replacement transaction underpriced") ||

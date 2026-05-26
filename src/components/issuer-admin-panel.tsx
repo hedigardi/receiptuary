@@ -21,12 +21,11 @@ type Props = {
   wrongChain: boolean;
 };
 
-type ReceiptTuple = readonly [string, string, bigint, Address, boolean];
+type ReceiptTuple = readonly [string, bigint, Address, boolean];
 
 type IssuerReceipt = {
   fileHash: `0x${string}`;
   issuerName: string;
-  referenceId: string;
   timestamp: bigint;
   registeredBy: Address;
   txHash: `0x${string}`;
@@ -83,7 +82,6 @@ type LoadingProgress = {
   usingCache: boolean;
 };
 
-type ReferenceFilter = "all" | "with-reference" | "without-reference";
 type SortMode = "newest" | "oldest" | "issuer-a-z";
 
 const RECEIPT_REGISTERED_EVENT = parseAbiItem(
@@ -280,8 +278,6 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
   const [loadingProgress, setLoadingProgress] =
     useState<LoadingProgress | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [referenceFilter, setReferenceFilter] =
-    useState<ReferenceFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const deploymentBlockRef = useRef<bigint | null>(
@@ -591,7 +587,7 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
           return;
         }
 
-        const [issuerName, referenceId, timestamp, registeredBy, isRegistered] =
+        const [issuerName, timestamp, registeredBy, isRegistered] =
           call.result as unknown as ReceiptTuple;
 
         if (
@@ -604,7 +600,6 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
         nextReceipts.push({
           fileHash,
           issuerName: issuerName || metadata.issuerNameFromEvent,
-          referenceId,
           timestamp,
           registeredBy,
           txHash: metadata.txHash,
@@ -655,15 +650,10 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
 
   const stats = useMemo(() => {
     const total = receipts.length;
-    const withReferenceId = receipts.filter(
-      (receipt) => receipt.referenceId,
-    ).length;
     const latestTimestamp = receipts[0]?.timestamp ?? 0n;
 
     return {
       total,
-      withReferenceId,
-      withoutReferenceId: total - withReferenceId,
       latestTimestamp,
     };
   }, [receipts]);
@@ -672,21 +662,12 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
     const search = searchTerm.trim().toLowerCase();
 
     const next = receipts.filter((receipt) => {
-      if (referenceFilter === "with-reference" && !receipt.referenceId) {
-        return false;
-      }
-
-      if (referenceFilter === "without-reference" && !!receipt.referenceId) {
-        return false;
-      }
-
       if (!search) {
         return true;
       }
 
       const haystack = [
         receipt.issuerName,
-        receipt.referenceId,
         receipt.fileHash,
         receipt.txHash,
         receipt.registeredBy,
@@ -730,7 +711,7 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
     });
 
     return next;
-  }, [receipts, referenceFilter, searchTerm, sortMode]);
+  }, [receipts, searchTerm, sortMode]);
 
   const totalPages = Math.max(
     1,
@@ -765,10 +746,7 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
     ];
   }, [safeCurrentPage, totalPages]);
 
-  const isFilterActive =
-    searchTerm.trim().length > 0 ||
-    referenceFilter !== "all" ||
-    sortMode !== "newest";
+  const isFilterActive = searchTerm.trim().length > 0 || sortMode !== "newest";
 
   const handleExportCsv = useCallback(() => {
     if (receipts.length === 0) {
@@ -777,7 +755,6 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
 
     const headers = [
       "issuer_name",
-      "reference_id",
       "registered_at_iso",
       "registered_at_unix",
       "registered_by",
@@ -795,7 +772,6 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
 
       return [
         receipt.issuerName,
-        receipt.referenceId,
         isoTimestamp,
         receipt.timestamp.toString(),
         receipt.registeredBy,
@@ -819,7 +795,6 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
 
     const headers = [
       "issuer_name",
-      "reference_id",
       "registered_at_iso",
       "registered_at_unix",
       "registered_by",
@@ -837,7 +812,6 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
 
       return [
         receipt.issuerName,
-        receipt.referenceId,
         isoTimestamp,
         receipt.timestamp.toString(),
         receipt.registeredBy,
@@ -878,7 +852,7 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">
-              Issuer admin
+              My receipts
             </p>
             <h2 className="mt-1 font-[var(--font-display)] text-xl text-stone-900 dark:text-stone-100">
               Your registered receipts
@@ -933,10 +907,10 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
         </article>
         <article className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4">
           <p className="text-xs uppercase tracking-[0.08em] text-stone-500 dark:text-stone-400">
-            With reference ID
+            Search scope
           </p>
-          <p className="mt-2 text-2xl font-semibold text-stone-900 dark:text-stone-100">
-            {stats.withReferenceId}
+          <p className="mt-2 text-sm font-semibold text-stone-900 dark:text-stone-100">
+            Issuer, file hash, tx hash, wallet
           </p>
         </article>
         <article className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4">
@@ -973,7 +947,7 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
       ) : (
         <div className="space-y-3">
           <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)]/80 p-4 backdrop-blur">
-            <div className="grid gap-3 md:grid-cols-[1.2fr_auto_auto]">
+            <div className="grid gap-3 md:grid-cols-[1.2fr_auto]">
               <label className="block">
                 <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-stone-500 dark:text-stone-400">
                   Search
@@ -985,29 +959,9 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
                     setSearchTerm(event.target.value);
                     setCurrentPage(1);
                   }}
-                  placeholder="Issuer, reference, hash or tx"
+                  placeholder="Issuer, hash, tx or wallet"
                   className="w-full rounded-xl border border-[var(--card-border)] bg-white dark:bg-[var(--card)] px-3 py-2 text-sm text-stone-800 dark:text-stone-100 outline-none ring-[var(--accent)] transition focus:ring-2"
                 />
-              </label>
-
-              <label className="block">
-                <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-stone-500 dark:text-stone-400">
-                  Filter
-                </span>
-                <select
-                  value={referenceFilter}
-                  onChange={(event) => {
-                    setReferenceFilter(event.target.value as ReferenceFilter);
-                    setCurrentPage(1);
-                  }}
-                  className="w-full rounded-xl border border-[var(--card-border)] bg-white dark:bg-[var(--card)] px-3 py-2 text-sm text-stone-800 dark:text-stone-100 outline-none ring-[var(--accent)] transition focus:ring-2"
-                >
-                  <option value="all">All receipts</option>
-                  <option value="with-reference">With reference ID</option>
-                  <option value="without-reference">
-                    Without reference ID
-                  </option>
-                </select>
               </label>
 
               <label className="block">
@@ -1130,16 +1084,7 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
                   ) : null}
                 </div>
 
-                <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
-                  <div className="rounded-lg border border-[var(--card-border)] bg-white/80 dark:bg-[var(--card)]/80 p-2">
-                    <p className="text-stone-500 dark:text-stone-400">
-                      Reference ID
-                    </p>
-                    <p className="mt-1 font-semibold text-stone-800 dark:text-stone-100">
-                      {receipt.referenceId || "Not provided"}
-                    </p>
-                  </div>
-
+                <div className="mt-3 grid gap-2 text-xs sm:grid-cols-1">
                   <div className="rounded-lg border border-[var(--card-border)] bg-white/80 dark:bg-[var(--card)]/80 p-2">
                     <p className="text-stone-500 dark:text-stone-400">
                       Registered by
