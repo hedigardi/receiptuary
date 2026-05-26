@@ -4,7 +4,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { useAccount, useChainId } from "wagmi";
+import { useAccount } from "wagmi";
 import { IssuerAdminPanel } from "@/components/issuer-admin-panel";
 import { ReceiptDropzone } from "@/components/receipt-dropzone";
 import { RegisterReceipt } from "@/components/register-receipt";
@@ -42,8 +42,11 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
   const [fileName, setFileName] = useState<string>("");
   const [fileHash, setFileHash] = useState<`0x${string}` | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const { address: walletAddress, isConnected } = useAccount();
-  const connectedChainId = useChainId();
+  const {
+    address: walletAddress,
+    isConnected,
+    chainId: connectedChainId,
+  } = useAccount();
   const networkBadge = getNetworkBadge(DEPLOYED_NETWORK_NAME);
   const deployedChainId = getChainIdFromNetworkName(DEPLOYED_NETWORK_NAME);
   const deployedChainLabel = deployedChainId
