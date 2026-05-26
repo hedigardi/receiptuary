@@ -2,7 +2,10 @@
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import { useAccount, useChainId } from "wagmi";
+import { IssuerAdminPanel } from "@/components/issuer-admin-panel";
 import { ReceiptDropzone } from "@/components/receipt-dropzone";
 import { RegisterReceipt } from "@/components/register-receipt";
 import { VerifyReceipt } from "@/components/verify-receipt";
@@ -27,20 +30,31 @@ import { truncateHash } from "@/lib/crypto";
 type Mode = "issuer" | "verifier";
 const LOGO_SRC = "/logo.png?v=20260524-2";
 
-export function ReceiptuaryApp() {
+type ReceiptuaryAppProps = {
+  adminRoute?: boolean;
+};
+
+export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
   // `mode` switches both explanatory copy and the right-side action panel.
   const [mode, setMode] = useState<Mode>("verifier");
   const [showChainDetails, setShowChainDetails] = useState(false);
   const [pricingReady, setPricingReady] = useState(false);
-  const chainPopoverRef = useRef<HTMLDivElement | null>(null);
   const [fileName, setFileName] = useState<string>("");
   const [fileHash, setFileHash] = useState<`0x${string}` | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const { address: walletAddress, isConnected } = useAccount();
+  const connectedChainId = useChainId();
   const networkBadge = getNetworkBadge(DEPLOYED_NETWORK_NAME);
   const deployedChainId = getChainIdFromNetworkName(DEPLOYED_NETWORK_NAME);
   const deployedChainLabel = deployedChainId
     ? getChainLabel(deployedChainId)
     : "the required network";
+  const isWalletOnWrongChain =
+    isConnected && !!deployedChainId && connectedChainId !== deployedChainId;
+  const isAdminView = adminRoute;
+  const mainClassName = isAdminView
+    ? "grid-overlay flex flex-1 items-start justify-center px-4 py-10 md:px-10"
+    : "grid-overlay flex min-h-[100svh] flex-1 items-center justify-center px-4 py-10 md:px-10";
 
   // Step cards are mode-specific so issuer/verifier users get task-relevant guidance.
   const flowSteps =
@@ -190,38 +204,6 @@ export function ReceiptuaryApp() {
   }, []);
 
   useEffect(() => {
-    if (!showChainDetails) {
-      return;
-    }
-
-    // Close the chain popover on outside click and Escape for accessibility.
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Node | null;
-      if (!target || !chainPopoverRef.current) {
-        return;
-      }
-
-      if (!chainPopoverRef.current.contains(target)) {
-        setShowChainDetails(false);
-      }
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setShowChainDetails(false);
-      }
-    };
-
-    window.addEventListener("pointerdown", handlePointerDown);
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("pointerdown", handlePointerDown);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [showChainDetails]);
-
-  useEffect(() => {
     // Delay card reveal to the next paint for a smooth initial animation.
     const frame = window.requestAnimationFrame(() => {
       setPricingReady(true);
@@ -255,7 +237,7 @@ export function ReceiptuaryApp() {
 
   return (
     <>
-      <main className="grid-overlay flex min-h-[100svh] flex-1 items-center justify-center px-4 py-10 md:px-10">
+      <main className={mainClassName}>
         <div className="w-full max-w-4xl rounded-3xl border border-[var(--card-border)] bg-[var(--card)]/95 p-6 shadow-[0_30px_120px_rgba(41,33,18,0.15)] backdrop-blur md:p-8">
           <header className="flex flex-col gap-4 border-b border-[var(--card-border)] pb-5 md:flex-row md:items-center md:justify-between">
             <div>
@@ -281,37 +263,30 @@ export function ReceiptuaryApp() {
               <h1 className="sr-only">Receiptuary - Is it real?</h1>
             </div>
 
-            <div
-              ref={chainPopoverRef}
-              className="relative flex w-full flex-wrap items-center justify-end gap-2 self-start md:w-auto md:flex-nowrap md:self-auto"
-            >
-              {IS_CONTRACT_CONFIGURED ? (
-                <button
-                  type="button"
-                  onClick={() => setShowChainDetails((current) => !current)}
-                  aria-expanded={showChainDetails}
-                  aria-controls="chain-profile-popover"
-                  aria-haspopup="dialog"
-                  className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${networkBadge.badgeClass} hover:brightness-[0.98]`}
-                >
-                  <span
-                    className={`h-2.5 w-2.5 rounded-full ${networkBadge.dotClass}`}
-                  />
-                  <span className="max-w-[92px] truncate sm:max-w-none">
-                    {networkBadge.label}
-                  </span>
-                  <span className="hidden text-[11px] opacity-80 sm:inline">
-                    {showChainDetails ? "Hide" : "Details"}
-                  </span>
-                  <span
-                    aria-hidden="true"
-                    className={`text-[10px] leading-none transition-transform duration-200 ${
-                      showChainDetails ? "rotate-180" : "rotate-0"
+            <div className="relative flex w-full flex-nowrap items-center justify-end gap-2 self-start md:w-auto md:self-auto">
+              {isConnected || isAdminView ? (
+                <div className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-1">
+                  <Link
+                    href="/"
+                    className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
+                      !isAdminView
+                        ? "bg-[var(--accent)] text-white"
+                        : "text-stone-700 dark:text-stone-300"
                     }`}
                   >
-                    v
-                  </span>
-                </button>
+                    Home
+                  </Link>
+                  <Link
+                    href="/admin"
+                    className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
+                      isAdminView
+                        ? "bg-[var(--accent)] text-white"
+                        : "text-stone-700 dark:text-stone-300"
+                    }`}
+                  >
+                    Admin
+                  </Link>
+                </div>
               ) : null}
 
               <ConnectButton.Custom>
@@ -337,11 +312,11 @@ export function ReceiptuaryApp() {
 
                   if (!connected) {
                     return (
-                      <div className="flex w-full flex-col items-end gap-1.5 sm:w-auto">
+                      <div className="flex w-auto shrink-0 items-center gap-1.5">
                         <button
                           type="button"
                           onClick={openConnectModal}
-                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3.5 py-2 text-sm font-semibold text-white transition hover:brightness-95 cursor-pointer sm:w-auto"
+                          className="inline-flex w-auto items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3.5 py-2 text-sm font-semibold text-white transition hover:brightness-95 cursor-pointer"
                         >
                           <svg
                             aria-hidden="true"
@@ -365,7 +340,7 @@ export function ReceiptuaryApp() {
 
                   if (isWalletOnWrongChain) {
                     return (
-                      <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
+                      <div className="flex w-auto flex-nowrap items-center justify-end gap-2">
                         <span className="inline-flex max-w-full items-center rounded-xl border border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-950/50 px-3 py-2 text-xs font-semibold text-amber-900 dark:text-amber-300">
                           Switch to {deployedChainLabel} in your wallet
                         </span>
@@ -397,7 +372,7 @@ export function ReceiptuaryApp() {
                   }
 
                   return (
-                    <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
+                    <div className="flex w-auto flex-nowrap items-center justify-end gap-2">
                       <button
                         type="button"
                         onClick={openAccountModal}
@@ -425,15 +400,57 @@ export function ReceiptuaryApp() {
                   );
                 }}
               </ConnectButton.Custom>
+            </div>
+          </header>
 
-              {IS_CONTRACT_CONFIGURED ? (
+          {!IS_CONTRACT_CONFIGURED ? (
+            <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+              Contract address is missing. Add
+              NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS to your env file.
+            </div>
+          ) : null}
+
+          {IS_CONTRACT_CONFIGURED ? (
+            <section className="mt-4 rounded-2xl border border-[var(--card-border)] bg-white/80 dark:bg-[var(--card)]/80 p-4 backdrop-blur">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div
-                  id="chain-profile-popover"
-                  className={`absolute left-0 right-0 top-full z-20 mt-2 origin-top rounded-2xl border border-[var(--card-border)] bg-white/95 dark:bg-[var(--card)]/95 p-4 text-xs text-stone-700 dark:text-stone-300 shadow-[0_18px_48px_rgba(41,33,18,0.16)] dark:shadow-[0_18px_48px_rgba(0,0,0,0.4)] backdrop-blur transition-all duration-200 md:left-auto md:right-0 md:w-[22rem] md:origin-top-right ${
-                    showChainDetails
-                      ? "translate-y-0 opacity-100"
-                      : "pointer-events-none -translate-y-1 opacity-0"
-                  }`}
+                  className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition hover:brightness-[0.98] ${networkBadge.badgeClass}`}
+                >
+                  <span
+                    className={`h-2.5 w-2.5 rounded-full ${networkBadge.dotClass}`}
+                  />
+                  <span className="max-w-[140px] truncate sm:max-w-none">
+                    {networkBadge.label}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowChainDetails((current) => !current)}
+                  aria-expanded={showChainDetails}
+                  aria-controls="network-details-panel"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-[var(--card-border)] px-3 py-1.5 text-xs font-semibold text-stone-700 dark:text-stone-300 transition hover:bg-[var(--accent-soft)] dark:hover:bg-white/10"
+                >
+                  <span>
+                    {showChainDetails
+                      ? "Hide network details"
+                      : "Show network details"}
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className={`text-[10px] leading-none transition-transform duration-200 ${
+                      showChainDetails ? "rotate-180" : "rotate-0"
+                    }`}
+                  >
+                    v
+                  </span>
+                </button>
+              </div>
+
+              {showChainDetails ? (
+                <div
+                  id="network-details-panel"
+                  className="mt-3 rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-3 text-xs text-stone-700 dark:text-stone-300"
                 >
                   <p className="font-semibold text-stone-800 dark:text-stone-200">
                     Active chain profile
@@ -449,362 +466,374 @@ export function ReceiptuaryApp() {
                   </p>
                 </div>
               ) : null}
-            </div>
-          </header>
-
-          {!IS_CONTRACT_CONFIGURED ? (
-            <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-              Contract address is missing. Add
-              NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS to your env file.
-            </div>
+            </section>
           ) : null}
 
-          <section className="mt-6 overflow-hidden rounded-2xl border border-[var(--card-border)] bg-gradient-to-br from-white dark:from-[var(--card)] via-[var(--accent-soft)]/70 to-emerald-50/70 dark:to-emerald-950/30 p-4 sm:p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">
-                  Pricing model
-                </p>
-                <h2 className="mt-1 font-[var(--font-display)] text-xl text-stone-900 dark:text-stone-100">
-                  Clear and predictable from first click
-                </h2>
-                <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
-                  You only pay when creating a new on-chain receipt proof.
-                  Verification is read-only and free.
-                </p>
-              </div>
-              <span className="inline-flex items-center rounded-full border border-stone-200 dark:border-stone-700 bg-white/90 dark:bg-[var(--card)]/90 px-3 py-1 text-xs font-semibold text-stone-700 dark:text-stone-300">
-                No subscriptions
-              </span>
-            </div>
-
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <article
-                className={`rounded-2xl border p-4 shadow-[0_12px_28px_rgba(16,185,129,0.12)] transition-all duration-500 ${
-                  pricingReady
-                    ? "translate-y-0 opacity-100"
-                    : "translate-y-2 opacity-0"
-                } ${
-                  mode === "issuer"
-                    ? "border-emerald-300 dark:border-emerald-700 bg-emerald-50/90 dark:bg-emerald-950/50"
-                    : "border-emerald-200 dark:border-emerald-800 bg-white/90 dark:bg-[var(--card)]/90"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-emerald-200 dark:border-emerald-700 bg-white dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400">
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 24 24"
-                        className="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <circle cx="12" cy="12" r="9" />
-                        <path d="M9.5 9.5h4a2 2 0 0 1 0 4h-3a2 2 0 0 0 0 4h4" />
-                        <path d="M12 7.5v1.5" />
-                        <path d="M12 15v1.5" />
-                      </svg>
-                    </span>
-                    <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">
-                      Issuer: Register receipt
+          {isAdminView ? (
+            <section className="mt-6">
+              {walletAddress ? (
+                <IssuerAdminPanel
+                  walletAddress={walletAddress}
+                  wrongChain={isWalletOnWrongChain}
+                />
+              ) : (
+                <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--accent-soft)] p-5 text-sm text-stone-700 dark:text-stone-300">
+                  Connect your wallet to open Issuer Admin.
+                </div>
+              )}
+            </section>
+          ) : (
+            <>
+              <section className="mt-6 overflow-hidden rounded-2xl border border-[var(--card-border)] bg-gradient-to-br from-white dark:from-[var(--card)] via-[var(--accent-soft)]/70 to-emerald-50/70 dark:to-emerald-950/30 p-4 sm:p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">
+                      Pricing model
+                    </p>
+                    <h2 className="mt-1 font-[var(--font-display)] text-xl text-stone-900 dark:text-stone-100">
+                      Clear and predictable from first click
+                    </h2>
+                    <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
+                      You only pay when creating a new on-chain receipt proof.
+                      Verification is read-only and free.
                     </p>
                   </div>
-                  <span className="shrink-0 whitespace-nowrap rounded-full border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-emerald-950/60 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-300 sm:px-2 sm:text-[11px]">
-                    {IS_PAID_REGISTRATION_ENABLED
-                      ? "Paid action"
-                      : "Currently free"}
+                  <span className="inline-flex items-center rounded-full border border-stone-200 dark:border-stone-700 bg-white/90 dark:bg-[var(--card)]/90 px-3 py-1 text-xs font-semibold text-stone-700 dark:text-stone-300">
+                    No subscriptions
                   </span>
                 </div>
-                <p className="mt-3 text-2xl font-bold text-emerald-900 dark:text-emerald-300">
-                  {IS_PAID_REGISTRATION_ENABLED
-                    ? `${PAYMENT_FEE_DISPLAY} ${PAYMENT_TOKEN_SYMBOL_FALLBACK}`
-                    : "0"}
-                </p>
-                <p className="mt-1 text-xs text-emerald-900/90 dark:text-emerald-300/90">
-                  {IS_PAID_REGISTRATION_ENABLED
-                    ? "Charged once per new registration."
-                    : "No token payment configured in this environment."}
-                </p>
-              </article>
 
-              <article
-                className={`rounded-2xl border p-4 shadow-[0_12px_28px_rgba(14,165,233,0.12)] transition-all delay-100 duration-500 ${
-                  pricingReady
-                    ? "translate-y-0 opacity-100"
-                    : "translate-y-2 opacity-0"
-                } ${
-                  mode === "verifier"
-                    ? "border-sky-300 dark:border-sky-700 bg-sky-50/90 dark:bg-sky-950/50"
-                    : "border-sky-200 dark:border-sky-800 bg-white/90 dark:bg-[var(--card)]/90"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-sky-200 dark:border-sky-700 bg-white dark:bg-sky-950/60 text-sky-700 dark:text-sky-400">
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 24 24"
-                        className="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M20 6 9 17l-5-5" />
-                      </svg>
-                    </span>
-                    <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">
-                      Verifier: Check receipt
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <article
+                    className={`rounded-2xl border p-4 shadow-[0_12px_28px_rgba(16,185,129,0.12)] transition-all duration-500 ${
+                      pricingReady
+                        ? "translate-y-0 opacity-100"
+                        : "translate-y-2 opacity-0"
+                    } ${
+                      mode === "issuer"
+                        ? "border-emerald-300 dark:border-emerald-700 bg-emerald-50/90 dark:bg-emerald-950/50"
+                        : "border-emerald-200 dark:border-emerald-800 bg-white/90 dark:bg-[var(--card)]/90"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-emerald-200 dark:border-emerald-700 bg-white dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400">
+                          <svg
+                            aria-hidden="true"
+                            viewBox="0 0 24 24"
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="M9.5 9.5h4a2 2 0 0 1 0 4h-3a2 2 0 0 0 0 4h4" />
+                            <path d="M12 7.5v1.5" />
+                            <path d="M12 15v1.5" />
+                          </svg>
+                        </span>
+                        <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+                          Issuer: Register receipt
+                        </p>
+                      </div>
+                      <span className="shrink-0 whitespace-nowrap rounded-full border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-emerald-950/60 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-300 sm:px-2 sm:text-[11px]">
+                        {IS_PAID_REGISTRATION_ENABLED
+                          ? "Paid action"
+                          : "Currently free"}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-2xl font-bold text-emerald-900 dark:text-emerald-300">
+                      {IS_PAID_REGISTRATION_ENABLED
+                        ? `${PAYMENT_FEE_DISPLAY} ${PAYMENT_TOKEN_SYMBOL_FALLBACK}`
+                        : "0"}
                     </p>
-                  </div>
-                  <span className="shrink-0 whitespace-nowrap rounded-full border border-sky-300 dark:border-sky-700 bg-white dark:bg-sky-950/60 px-1.5 py-0.5 text-[10px] font-semibold text-sky-800 dark:text-sky-300 sm:px-2 sm:text-[11px]">
-                    Always free
-                  </span>
+                    <p className="mt-1 text-xs text-emerald-900/90 dark:text-emerald-300/90">
+                      {IS_PAID_REGISTRATION_ENABLED
+                        ? "Charged once per new registration."
+                        : "No token payment configured in this environment."}
+                    </p>
+                  </article>
+
+                  <article
+                    className={`rounded-2xl border p-4 shadow-[0_12px_28px_rgba(14,165,233,0.12)] transition-all delay-100 duration-500 ${
+                      pricingReady
+                        ? "translate-y-0 opacity-100"
+                        : "translate-y-2 opacity-0"
+                    } ${
+                      mode === "verifier"
+                        ? "border-sky-300 dark:border-sky-700 bg-sky-50/90 dark:bg-sky-950/50"
+                        : "border-sky-200 dark:border-sky-800 bg-white/90 dark:bg-[var(--card)]/90"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-sky-200 dark:border-sky-700 bg-white dark:bg-sky-950/60 text-sky-700 dark:text-sky-400">
+                          <svg
+                            aria-hidden="true"
+                            viewBox="0 0 24 24"
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                        </span>
+                        <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+                          Verifier: Check receipt
+                        </p>
+                      </div>
+                      <span className="shrink-0 whitespace-nowrap rounded-full border border-sky-300 dark:border-sky-700 bg-white dark:bg-sky-950/60 px-1.5 py-0.5 text-[10px] font-semibold text-sky-800 dark:text-sky-300 sm:px-2 sm:text-[11px]">
+                        Always free
+                      </span>
+                    </div>
+                    <p className="mt-3 text-2xl font-bold text-sky-900 dark:text-sky-300">
+                      0
+                    </p>
+                    <p className="mt-1 text-xs text-sky-900/90 dark:text-sky-300/90">
+                      No fee for verification lookups.
+                    </p>
+                  </article>
                 </div>
-                <p className="mt-3 text-2xl font-bold text-sky-900 dark:text-sky-300">
-                  0
-                </p>
-                <p className="mt-1 text-xs text-sky-900/90 dark:text-sky-300/90">
-                  No fee for verification lookups.
-                </p>
-              </article>
-            </div>
 
-            <div
-              className={`mt-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-white/85 dark:bg-[var(--card)]/85 px-3 py-2 text-xs text-stone-700 dark:text-stone-300 transition-all delay-150 duration-500 ${
-                pricingReady
-                  ? "translate-y-0 opacity-100"
-                  : "translate-y-2 opacity-0"
-              }`}
-            >
-              Predictable pricing: pay only when you create proof. Verifying
-              existing proof is free.
-            </div>
-          </section>
-
-          <section className="mt-6 overflow-hidden rounded-2xl border border-[var(--card-border)] bg-gradient-to-br from-[var(--accent-soft)] via-white dark:via-[var(--card)] to-emerald-50 dark:to-emerald-950/20 p-4 sm:p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">
-                  How it works
-                </p>
-                <h2 className="mt-1 font-[var(--font-display)] text-xl text-stone-900 dark:text-stone-100">
-                  A simple 3-step flow for everyone
-                </h2>
-                <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
-                  {mode === "issuer"
-                    ? "You are in Issuer mode: create tamper-proof receipt records (1 USDC per registration)."
-                    : "You are in Verifier mode: check if a receipt has a valid on-chain proof (free)."}
-                </p>
-              </div>
-              <span className="inline-flex items-center rounded-full border border-emerald-200 dark:border-emerald-700 bg-white/90 dark:bg-[var(--card)]/90 px-3 py-1 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-                {mode === "issuer" ? "Issuer journey" : "Verifier journey"}
-              </span>
-            </div>
-
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
-              {flowSteps.map((step, index) => (
                 <div
-                  key={step.title}
-                  className={`relative rounded-xl border border-white/60 dark:border-white/10 bg-white/80 dark:bg-[var(--card)]/80 p-4 shadow-[0_10px_25px_rgba(3,98,76,0.08)] backdrop-blur transition-all duration-500 ${
+                  className={`mt-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-white/85 dark:bg-[var(--card)]/85 px-3 py-2 text-xs text-stone-700 dark:text-stone-300 transition-all delay-150 duration-500 ${
                     pricingReady
                       ? "translate-y-0 opacity-100"
                       : "translate-y-2 opacity-0"
                   }`}
-                  style={{ transitionDelay: `${index * 90}ms` }}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
-                      {step.icon}
-                    </span>
-                    <span className="shrink-0 whitespace-nowrap rounded-full border border-emerald-200 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 sm:px-2 sm:text-[11px]">
-                      Step {index + 1}
-                    </span>
+                  Predictable pricing: pay only when you create proof. Verifying
+                  existing proof is free.
+                </div>
+              </section>
+
+              <section className="mt-6 overflow-hidden rounded-2xl border border-[var(--card-border)] bg-gradient-to-br from-[var(--accent-soft)] via-white dark:via-[var(--card)] to-emerald-50 dark:to-emerald-950/20 p-4 sm:p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">
+                      How it works
+                    </p>
+                    <h2 className="mt-1 font-[var(--font-display)] text-xl text-stone-900 dark:text-stone-100">
+                      A simple 3-step flow for everyone
+                    </h2>
+                    <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
+                      {mode === "issuer"
+                        ? "You are in Issuer mode: create tamper-proof receipt records (1 USDC per registration)."
+                        : "You are in Verifier mode: check if a receipt has a valid on-chain proof (free)."}
+                    </p>
                   </div>
-                  <p className="mt-3 text-sm font-semibold text-stone-900 dark:text-stone-100">
-                    {step.title}
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed text-stone-600 dark:text-stone-400">
-                    {step.description}
-                  </p>
+                  <span className="inline-flex items-center rounded-full border border-emerald-200 dark:border-emerald-700 bg-white/90 dark:bg-[var(--card)]/90 px-3 py-1 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                    {mode === "issuer" ? "Issuer journey" : "Verifier journey"}
+                  </span>
                 </div>
-              ))}
-            </div>
-          </section>
 
-          <section className="mt-6 grid gap-5 md:grid-cols-[1fr_1.2fr]">
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    className={`rounded-xl px-3 py-2 text-sm font-semibold transition cursor-pointer ${
-                      mode === "issuer"
-                        ? "bg-[var(--accent)] text-white dark:text-[#0f1613]"
-                        : "bg-transparent text-stone-700 dark:text-stone-300"
-                    }`}
-                    onClick={() => setMode("issuer")}
-                  >
-                    Issuer
-                  </button>
-                  <button
-                    type="button"
-                    className={`rounded-xl px-3 py-2 text-sm font-semibold transition cursor-pointer ${
-                      mode === "verifier"
-                        ? "bg-[var(--accent)] text-white dark:text-[#0f1613]"
-                        : "bg-transparent text-stone-700 dark:text-stone-300"
-                    }`}
-                    onClick={() => setMode("verifier")}
-                  >
-                    Verifier
-                  </button>
-                </div>
-              </div>
-
-              {mode === "issuer" && IS_PAID_REGISTRATION_ENABLED ? (
-                <div className="rounded-2xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 p-3 text-xs text-emerald-900 dark:text-emerald-300">
-                  Issuer registration is paid. Approve payment, then register.
-                  Verification is free.
-                </div>
-              ) : null}
-
-              {mode === "verifier" && IS_PAID_REGISTRATION_ENABLED ? (
-                <div className="rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/50 p-3 text-xs text-sky-900 dark:text-sky-300">
-                  Verifier is free. {PAYMENT_FEE_DISPLAY}{" "}
-                  {PAYMENT_TOKEN_SYMBOL_FALLBACK} applies only to issuer
-                  registrations.
-                </div>
-              ) : null}
-
-              <ReceiptDropzone onHashed={handleHashed} />
-
-              {fileHash ? (
-                <div className="rounded-2xl border border-[var(--card-border)] bg-white dark:bg-[var(--card)] p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm font-semibold">File: {fileName}</p>
-                    <button
-                      type="button"
-                      onClick={handleClearUploadedFile}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/50 px-2.5 py-1 text-xs font-semibold text-rose-700 dark:text-rose-300 transition hover:bg-rose-100 dark:hover:bg-rose-950 cursor-pointer"
-                      aria-label="Clear selected file locally"
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  {flowSteps.map((step, index) => (
+                    <div
+                      key={step.title}
+                      className={`relative rounded-xl border border-white/60 dark:border-white/10 bg-white/80 dark:bg-[var(--card)]/80 p-4 shadow-[0_10px_25px_rgba(3,98,76,0.08)] backdrop-blur transition-all duration-500 ${
+                        pricingReady
+                          ? "translate-y-0 opacity-100"
+                          : "translate-y-2 opacity-0"
+                      }`}
+                      style={{ transitionDelay: `${index * 90}ms` }}
                     >
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 24 24"
-                        className="h-3.5 w-3.5"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+                      <div className="flex items-center justify-between">
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
+                          {step.icon}
+                        </span>
+                        <span className="shrink-0 whitespace-nowrap rounded-full border border-emerald-200 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 sm:px-2 sm:text-[11px]">
+                          Step {index + 1}
+                        </span>
+                      </div>
+                      <p className="mt-3 text-sm font-semibold text-stone-900 dark:text-stone-100">
+                        {step.title}
+                      </p>
+                      <p className="mt-1 text-xs leading-relaxed text-stone-600 dark:text-stone-400">
+                        {step.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="mt-6 grid gap-5 md:grid-cols-[1fr_1.2fr]">
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        className={`rounded-xl px-3 py-2 text-sm font-semibold transition cursor-pointer ${
+                          mode === "issuer"
+                            ? "bg-[var(--accent)] text-white dark:text-[#0f1613]"
+                            : "bg-transparent text-stone-700 dark:text-stone-300"
+                        }`}
+                        onClick={() => setMode("issuer")}
                       >
-                        <path d="M3 6h18" />
-                        <path d="M8 6V4h8v2" />
-                        <path d="M19 6l-1 14H6L5 6" />
-                        <path d="M10 11v6" />
-                        <path d="M14 11v6" />
-                      </svg>
-                      <span>Choose another file</span>
-                    </button>
+                        Issuer
+                      </button>
+                      <button
+                        type="button"
+                        className={`rounded-xl px-3 py-2 text-sm font-semibold transition cursor-pointer ${
+                          mode === "verifier"
+                            ? "bg-[var(--accent)] text-white dark:text-[#0f1613]"
+                            : "bg-transparent text-stone-700 dark:text-stone-300"
+                        }`}
+                        onClick={() => setMode("verifier")}
+                      >
+                        Verifier
+                      </button>
+                    </div>
                   </div>
-                  <p className="mt-1 text-xs text-stone-600 dark:text-stone-400">
-                    SHA-256 (bytes32)
-                  </p>
-                  <p className="mt-2 break-all font-[var(--font-mono)] text-xs text-[var(--accent)]">
-                    {fileHash}
-                  </p>
-                  <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
-                    Short format: {truncateHash(fileHash)}
-                  </p>
-                  <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
-                    Local action only: this clears the selected file in this
-                    app. No on-chain records are deleted.
-                  </p>
+
+                  {mode === "issuer" && IS_PAID_REGISTRATION_ENABLED ? (
+                    <div className="rounded-2xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 p-3 text-xs text-emerald-900 dark:text-emerald-300">
+                      Issuer registration is paid. Approve payment, then
+                      register. Verification is free.
+                    </div>
+                  ) : null}
+
+                  {mode === "verifier" && IS_PAID_REGISTRATION_ENABLED ? (
+                    <div className="rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/50 p-3 text-xs text-sky-900 dark:text-sky-300">
+                      Verifier is free. {PAYMENT_FEE_DISPLAY}{" "}
+                      {PAYMENT_TOKEN_SYMBOL_FALLBACK} applies only to issuer
+                      registrations.
+                    </div>
+                  ) : null}
+
+                  <ReceiptDropzone onHashed={handleHashed} />
+
+                  {fileHash ? (
+                    <div className="rounded-2xl border border-[var(--card-border)] bg-white dark:bg-[var(--card)] p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-semibold">
+                          File: {fileName}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleClearUploadedFile}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/50 px-2.5 py-1 text-xs font-semibold text-rose-700 dark:text-rose-300 transition hover:bg-rose-100 dark:hover:bg-rose-950 cursor-pointer"
+                          aria-label="Clear selected file locally"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            viewBox="0 0 24 24"
+                            className="h-3.5 w-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M3 6h18" />
+                            <path d="M8 6V4h8v2" />
+                            <path d="M19 6l-1 14H6L5 6" />
+                            <path d="M10 11v6" />
+                            <path d="M14 11v6" />
+                          </svg>
+                          <span>Choose another file</span>
+                        </button>
+                      </div>
+                      <p className="mt-1 text-xs text-stone-600 dark:text-stone-400">
+                        SHA-256 (bytes32)
+                      </p>
+                      <p className="mt-2 break-all font-[var(--font-mono)] text-xs text-[var(--accent)]">
+                        {fileHash}
+                      </p>
+                      <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
+                        Short format: {truncateHash(fileHash)}
+                      </p>
+                      <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
+                        Local action only: this clears the selected file in this
+                        app. No on-chain records are deleted.
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
-            </div>
 
-            <div>
-              {!fileHash ? (
-                <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--accent-soft)] p-5 text-sm text-stone-700 dark:text-stone-300">
-                  Upload a receipt to continue.
+                <div>
+                  {!fileHash ? (
+                    <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--accent-soft)] p-5 text-sm text-stone-700 dark:text-stone-300">
+                      Upload a receipt to continue.
+                    </div>
+                  ) : mode === "issuer" ? (
+                    <RegisterReceipt fileHash={fileHash} />
+                  ) : (
+                    <VerifyReceipt fileHash={fileHash} />
+                  )}
                 </div>
-              ) : mode === "issuer" ? (
-                <RegisterReceipt fileHash={fileHash} />
-              ) : (
-                <VerifyReceipt fileHash={fileHash} />
-              )}
-            </div>
-          </section>
+              </section>
 
-          <section className="mt-6 overflow-hidden rounded-2xl border border-[var(--card-border)] bg-white/80 dark:bg-[var(--card)]/80 p-4 sm:p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">
-              FAQ
-            </p>
-            <h2 className="mt-1 font-[var(--font-display)] text-xl text-stone-900 dark:text-stone-100">
-              Common questions
-            </h2>
+              <section className="mt-6 overflow-hidden rounded-2xl border border-[var(--card-border)] bg-white/80 dark:bg-[var(--card)]/80 p-4 sm:p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">
+                  FAQ
+                </p>
+                <h2 className="mt-1 font-[var(--font-display)] text-xl text-stone-900 dark:text-stone-100">
+                  Common questions
+                </h2>
 
-            <div className="mt-4 space-y-3">
-              {[
-                {
-                  q: "Do you store my receipts or files?",
-                  a: "No. Your file never leaves your device. The fingerprint (SHA-256 hash) is computed locally in your browser. Only the hash — never the file itself — is sent to the blockchain.",
-                },
-                {
-                  q: "Why Base network?",
-                  a: "Base is a fast, low-cost Ethereum Layer 2 network backed by Coinbase. It provides the security of Ethereum at a fraction of the cost, making per-receipt on-chain proofs practical.",
-                },
-                {
-                  q: "Do I need ETH to verify a receipt?",
-                  a: "No. Verification is a read-only lookup — it is completely free and requires no wallet or gas.",
-                },
-                {
-                  q: "Why does re-saving a PDF break verification?",
-                  a: "SHA-256 hashing is exact — even a single invisible bit change produces a completely different fingerprint. Always upload the original file exactly as it was downloaded, without opening, resaving, or renaming it.",
-                },
-                {
-                  q: "What does the 1 USDC fee cover?",
-                  a: "The fee is charged to the issuer wallet at the time of registration to prevent spam and sustainably fund the service. Verification is always free.",
-                },
-                {
-                  q: "Is this GDPR compliant?",
-                  a: "Yes. Because files never leave your device and only a non-reversible hash is stored on-chain, no personal data or file content is shared with any server or third party.",
-                },
-              ].map(({ q, a }) => (
-                <details
-                  key={q}
-                  className="group rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-4 py-3"
-                >
-                  <summary className="cursor-pointer list-none text-sm font-semibold text-stone-800 dark:text-stone-200 marker:hidden">
-                    <span className="flex items-center justify-between gap-2">
-                      <span>{q}</span>
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 24 24"
-                        className="h-4 w-4 shrink-0 text-stone-400 dark:text-stone-500 transition-transform duration-200 group-open:rotate-180"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="m6 9 6 6 6-6" />
-                      </svg>
-                    </span>
-                  </summary>
-                  <p className="mt-2 text-xs leading-relaxed text-stone-600 dark:text-stone-400">
-                    {a}
-                  </p>
-                </details>
-              ))}
-            </div>
-          </section>
+                <div className="mt-4 space-y-3">
+                  {[
+                    {
+                      q: "Do you store my receipts or files?",
+                      a: "No. Your file never leaves your device. The fingerprint (SHA-256 hash) is computed locally in your browser. Only the hash — never the file itself — is sent to the blockchain.",
+                    },
+                    {
+                      q: "Why Base network?",
+                      a: "Base is a fast, low-cost Ethereum Layer 2 network backed by Coinbase. It provides the security of Ethereum at a fraction of the cost, making per-receipt on-chain proofs practical.",
+                    },
+                    {
+                      q: "Do I need ETH to verify a receipt?",
+                      a: "No. Verification is a read-only lookup — it is completely free and requires no wallet or gas.",
+                    },
+                    {
+                      q: "Why does re-saving a PDF break verification?",
+                      a: "SHA-256 hashing is exact — even a single invisible bit change produces a completely different fingerprint. Always upload the original file exactly as it was downloaded, without opening, resaving, or renaming it.",
+                    },
+                    {
+                      q: "What does the 1 USDC fee cover?",
+                      a: "The fee is charged to the issuer wallet at the time of registration to prevent spam and sustainably fund the service. Verification is always free.",
+                    },
+                    {
+                      q: "Is this GDPR compliant?",
+                      a: "Yes. Because files never leave your device and only a non-reversible hash is stored on-chain, no personal data or file content is shared with any server or third party.",
+                    },
+                  ].map(({ q, a }) => (
+                    <details
+                      key={q}
+                      className="group rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-4 py-3"
+                    >
+                      <summary className="cursor-pointer list-none text-sm font-semibold text-stone-800 dark:text-stone-200 marker:hidden">
+                        <span className="flex items-center justify-between gap-2">
+                          <span>{q}</span>
+                          <svg
+                            aria-hidden="true"
+                            viewBox="0 0 24 24"
+                            className="h-4 w-4 shrink-0 text-stone-400 dark:text-stone-500 transition-transform duration-200 group-open:rotate-180"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="m6 9 6 6 6-6" />
+                          </svg>
+                        </span>
+                      </summary>
+                      <p className="mt-2 text-xs leading-relaxed text-stone-600 dark:text-stone-400">
+                        {a}
+                      </p>
+                    </details>
+                  ))}
+                </div>
+              </section>
+            </>
+          )}
         </div>
       </main>
 

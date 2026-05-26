@@ -54,9 +54,14 @@ Copy-Item .env.example .env
 - `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`
 - `NEXT_PUBLIC_SITE_URL`
 - `NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS` (can be empty before first deploy)
+- `NEXT_PUBLIC_RECEIPTUARY_DEPLOYMENT_BLOCK` (optional but recommended, e.g. `46320000`)
+- `NEXT_PUBLIC_BASE_FALLBACK_RPC_URL` (optional, e.g. `https://base.llamarpc.com`)
 - `NEXT_PUBLIC_USDC_TOKEN_ADDRESS`
 - `NEXT_PUBLIC_RECEIPTUARY_FEE_RECIPIENT`
 - `NEXT_PUBLIC_RECEIPTUARY_FEE_AMOUNT` (example `1000000` for 1.00 USDC with 6 decimals)
+
+`NEXT_PUBLIC_RECEIPTUARY_DEPLOYMENT_BLOCK` limits issuer admin event scans to contract lifetime and reduces RPC rate-limit errors.
+`NEXT_PUBLIC_BASE_FALLBACK_RPC_URL` is used as automatic failover for issuer admin log reads if the primary Base RPC is rate-limited.
 
 4. Start app
 
