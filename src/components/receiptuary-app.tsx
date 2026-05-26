@@ -266,9 +266,9 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
               <h1 className="sr-only">Receiptuary - Is it real?</h1>
             </div>
 
-            <div className="relative flex w-full flex-nowrap items-center justify-end gap-2 self-start md:w-auto md:self-auto">
+            <div className="relative isolate flex w-full flex-wrap items-center justify-end gap-2 gap-y-2 self-start md:w-auto md:flex-nowrap md:self-auto">
               {isConnected || isAdminView ? (
-                <div className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-1">
+                <div className="relative z-20 inline-flex shrink-0 items-center gap-1 rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-1">
                   <Link
                     href="/"
                     className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
@@ -299,6 +299,7 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
                   mounted,
                   authenticationStatus,
                   openAccountModal,
+                  openChainModal,
                   openConnectModal,
                 }) => {
                   const ready = mounted && authenticationStatus !== "loading";
@@ -313,13 +314,28 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
                     !!deployedChainId &&
                     chain.id !== deployedChainId;
 
+                  const hiddenWhileLoading = !ready
+                    ? {
+                        "aria-hidden": true,
+                        style: {
+                          opacity: 0,
+                          pointerEvents: "none" as const,
+                          userSelect: "none" as const,
+                        },
+                      }
+                    : {};
+
                   if (!connected) {
                     return (
-                      <div className="flex w-auto shrink-0 items-center gap-1.5">
+                      <div
+                        className="relative z-10 flex w-auto shrink-0 items-center gap-1.5"
+                        {...hiddenWhileLoading}
+                      >
                         <button
                           type="button"
                           onClick={openConnectModal}
-                          className="inline-flex w-auto items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3.5 py-2 text-sm font-semibold text-white transition hover:brightness-95 cursor-pointer"
+                          disabled={!ready}
+                          className="inline-flex w-auto touch-manipulation items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3.5 py-2 text-sm font-semibold text-white transition hover:brightness-95 cursor-pointer"
                         >
                           <svg
                             aria-hidden="true"
@@ -343,11 +359,11 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
 
                   if (isWalletOnWrongChain) {
                     return (
-                      <div className="flex w-auto shrink-0 items-center justify-end">
+                      <div className="relative z-10 flex w-auto shrink-0 items-center justify-end">
                         <button
                           type="button"
-                          onClick={openAccountModal}
-                          className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-xl bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white transition hover:brightness-95 cursor-pointer"
+                          onClick={openChainModal}
+                          className="inline-flex min-w-0 max-w-full touch-manipulation items-center gap-2 rounded-xl bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white transition hover:brightness-95 cursor-pointer"
                         >
                           <svg
                             aria-hidden="true"
@@ -372,11 +388,11 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
                   }
 
                   return (
-                    <div className="flex w-auto flex-nowrap items-center justify-end gap-2">
+                    <div className="relative z-10 flex w-auto flex-nowrap items-center justify-end gap-2">
                       <button
                         type="button"
                         onClick={openAccountModal}
-                        className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-xl bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white transition hover:brightness-95 cursor-pointer"
+                        className="inline-flex min-w-0 max-w-full touch-manipulation items-center gap-2 rounded-xl bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white transition hover:brightness-95 cursor-pointer"
                       >
                         <svg
                           aria-hidden="true"
@@ -403,7 +419,7 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
             </div>
 
             {isWalletOnWrongChain ? (
-              <div className="flex w-full justify-end md:basis-full md:justify-end md:-mt-2">
+              <div className="pointer-events-none relative z-0 flex w-full justify-end md:basis-full md:justify-end md:-mt-2">
                 <span className="inline-flex max-w-[min(90vw,22rem)] items-center rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-right text-xs font-semibold text-amber-900 dark:border-amber-600 dark:bg-amber-950/50 dark:text-amber-300">
                   Switch to {deployedChainLabel} in your wallet
                 </span>
