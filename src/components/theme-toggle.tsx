@@ -12,6 +12,7 @@ export function ThemeToggle() {
   }, []);
 
   if (!mounted) {
+    // Prevent hydration mismatch while `next-themes` resolves system preference on client.
     return (
       <div className="h-8 w-8 rounded-full border border-[var(--card-border)] bg-[var(--card)]" />
     );
@@ -27,7 +28,7 @@ export function ThemeToggle() {
       className="group relative inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--card-border)] bg-[var(--card)] text-[var(--foreground)] shadow-sm transition-all duration-200 hover:border-[var(--accent)] hover:text-[var(--accent)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
     >
       {isDark ? (
-        /* Sol-ikon för att byta till ljust */
+        /* Sun icon indicates switching back to light theme. */
         <svg
           aria-hidden="true"
           viewBox="0 0 24 24"
@@ -49,7 +50,7 @@ export function ThemeToggle() {
           <path d="m19.07 4.93-1.41 1.41" />
         </svg>
       ) : (
-        /* Måne-ikon för att byta till mörkt */
+        /* Moon icon indicates switching to dark theme. */
         <svg
           aria-hidden="true"
           viewBox="0 0 24 24"

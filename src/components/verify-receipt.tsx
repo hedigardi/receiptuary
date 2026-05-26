@@ -63,6 +63,7 @@ export function VerifyReceipt({ fileHash }: Props) {
     const friendlyReadError = toUserFriendlyError(error, "verify");
     const isWalletOnWrongChain =
       !!deployedChainId && chainId !== deployedChainId;
+    // If chain matches but read fails, surface likely config/deployment mismatch guidance.
     const isContractReadMismatch = !isWalletOnWrongChain;
 
     return (
@@ -95,6 +96,7 @@ export function VerifyReceipt({ fileHash }: Props) {
   }
 
   const [issuerName, referenceId, timestamp, registeredBy, isRegistered] =
+    // Keep rendering resilient even if read data is temporarily undefined.
     (data as ReceiptTuple | undefined) ?? [
       "",
       "",

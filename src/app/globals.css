@@ -3,6 +3,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* Brand and surface tokens for the light theme. */
   --background: #fbf8f3;
   --foreground: #1f1f1f;
   --card: #fffdf9;
@@ -15,6 +16,7 @@
 }
 
 .dark {
+  /* Dark theme uses the same token names so components can stay theme-agnostic. */
   --background: #0f1613;
   --foreground: #edeae3;
   --card: #1a2320;
@@ -43,6 +45,7 @@ body {
   color: var(--foreground);
   font-family: var(--font-body), sans-serif;
   background-image:
+    /* Layered gradients create depth without image assets. */
     radial-gradient(circle at 10% 10%, #f7e7cf 0%, transparent 35%),
     radial-gradient(circle at 90% 10%, #dcebdd 0%, transparent 40%),
     linear-gradient(180deg, #f7f2e8 0%, #fcfaf6 40%, #f5eee1 100%);
@@ -69,6 +72,7 @@ body {
 }
 
 .grid-overlay {
+  /* Subtle grid overlay helps visual rhythm while keeping content dominant. */
   background-image:
     linear-gradient(
       rgba(40, 33, 23, var(--grid-line-alpha)) 1px,

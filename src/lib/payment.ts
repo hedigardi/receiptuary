@@ -10,6 +10,10 @@ const envFeeAmount = process.env.NEXT_PUBLIC_RECEIPTUARY_FEE_AMOUNT?.trim();
 
 const feeAmountIsValid = !!envFeeAmount && /^\d+$/.test(envFeeAmount);
 
+/**
+ * Invalid or missing env values are coerced to zero address/zero amount,
+ * which safely disables the paid registration path.
+ */
 export const PAYMENT_TOKEN_ADDRESS =
   envFeeToken && envFeeToken.startsWith("0x") && envFeeToken.length === 42
     ? (envFeeToken as Address)
@@ -26,6 +30,9 @@ export const PAYMENT_FEE_AMOUNT = feeAmountIsValid
   ? BigInt(envFeeAmount)
   : BigInt(0);
 
+/**
+ * True only when token, recipient, and fee amount are all configured.
+ */
 export const IS_PAID_REGISTRATION_ENABLED =
   PAYMENT_TOKEN_ADDRESS !== ZERO_ADDRESS &&
   PAYMENT_RECIPIENT_ADDRESS !== ZERO_ADDRESS &&
@@ -38,6 +45,9 @@ export const PAYMENT_FEE_DISPLAY = formatUnits(
   PAYMENT_TOKEN_DECIMALS_FALLBACK,
 );
 
+/**
+ * Minimal ERC-20 ABI required for approve/allowance/balance and display metadata.
+ */
 export const ERC20_ABI = [
   {
     inputs: [

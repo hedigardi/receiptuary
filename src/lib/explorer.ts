@@ -3,6 +3,9 @@ const EXPLORER_BY_CHAIN_ID: Record<number, string> = {
   84532: "https://sepolia.basescan.org",
 };
 
+/**
+ * Accepts common network naming variants used by env values and deploy tooling.
+ */
 const CHAIN_ID_BY_NETWORK_NAME: Record<string, number> = {
   base: 8453,
   basesepolia: 84532,
@@ -27,10 +30,16 @@ export function getExplorerTxUrl(
   return `${baseUrl}/tx/${txHash}`;
 }
 
+/**
+ * Returns a user-facing chain label for the given chain ID.
+ */
 export function getChainLabel(chainId: number): string {
   return LABEL_BY_CHAIN_ID[chainId] ?? `Chain ${chainId}`;
 }
 
+/**
+ * Returns the explorer URL for an address on the active chain.
+ */
 export function getExplorerAddressUrl(
   chainId: number,
   address: string,
@@ -43,6 +52,9 @@ export function getExplorerAddressUrl(
   return `${baseUrl}/address/${address}`;
 }
 
+/**
+ * Returns a chain-specific explorer search URL.
+ */
 export function getExplorerSearchUrl(
   chainId: number,
   query: string,
@@ -55,6 +67,9 @@ export function getExplorerSearchUrl(
   return `${baseUrl}/search?f=0&q=${encodeURIComponent(query)}`;
 }
 
+/**
+ * Returns the contract events tab URL used for receipt event lookup.
+ */
 export function getExplorerReceiptEventLogsUrl(
   chainId: number,
   contractAddress: string,
@@ -64,11 +79,13 @@ export function getExplorerReceiptEventLogsUrl(
     return null;
   }
 
-  // BaseScan Sepolia returns 404 for /logs deep links, so route to the
-  // contract events tab which consistently loads across supported chains.
+  // BaseScan Sepolia may return 404 for /logs deep links.
   return `${baseUrl}/address/${contractAddress}#events`;
 }
 
+/**
+ * Maps a normalized network name to a chain ID when known.
+ */
 export function getChainIdFromNetworkName(networkName: string): number | null {
   if (!networkName) {
     return null;
@@ -78,6 +95,9 @@ export function getChainIdFromNetworkName(networkName: string): number | null {
   return CHAIN_ID_BY_NETWORK_NAME[normalized] ?? null;
 }
 
+/**
+ * Returns badge text and classes for the network indicator chip.
+ */
 export function getNetworkBadge(networkName: string): {
   label: string;
   dotClass: string;
@@ -111,7 +131,11 @@ export function getNetworkBadge(networkName: string): {
   };
 }
 
+/**
+ * Normalizes network naming from env/deploy sources into a safe UI string.
+ */
 export function normalizeNetworkName(networkName: string): string {
+  // Environment values can leak as the literal string "undefined".
   if (!networkName || networkName === "undefined") {
     return "unknown";
   }

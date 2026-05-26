@@ -8,6 +8,7 @@ const siteName = "Receiptuary";
 const siteDescription =
   "Verify digital receipts with local SHA-256 hashing and blockchain anchoring on Base.";
 
+// Display/body/mono font variables are exposed to CSS custom properties in globals.css.
 const displayFont = Space_Grotesk({
   variable: "--font-display",
   subsets: ["latin"],
@@ -24,6 +25,7 @@ const bodyFont = Space_Grotesk({
   subsets: ["latin"],
 });
 
+// Metadata centralizes SEO/social cards for all routes under App Router.
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {

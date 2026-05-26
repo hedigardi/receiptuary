@@ -28,6 +28,7 @@ type Mode = "issuer" | "verifier";
 const LOGO_SRC = "/logo.png?v=20260524-2";
 
 export function ReceiptuaryApp() {
+  // `mode` switches both explanatory copy and the right-side action panel.
   const [mode, setMode] = useState<Mode>("verifier");
   const [showChainDetails, setShowChainDetails] = useState(false);
   const [pricingReady, setPricingReady] = useState(false);
@@ -40,6 +41,8 @@ export function ReceiptuaryApp() {
   const deployedChainLabel = deployedChainId
     ? getChainLabel(deployedChainId)
     : "the required network";
+
+  // Step cards are mode-specific so issuer/verifier users get task-relevant guidance.
   const flowSteps =
     mode === "issuer"
       ? [
@@ -191,6 +194,7 @@ export function ReceiptuaryApp() {
       return;
     }
 
+    // Close the chain popover on outside click and Escape for accessibility.
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node | null;
       if (!target || !chainPopoverRef.current) {
@@ -218,6 +222,7 @@ export function ReceiptuaryApp() {
   }, [showChainDetails]);
 
   useEffect(() => {
+    // Delay card reveal to the next paint for a smooth initial animation.
     const frame = window.requestAnimationFrame(() => {
       setPricingReady(true);
     });
@@ -228,12 +233,14 @@ export function ReceiptuaryApp() {
   }, []);
 
   useEffect(() => {
+    // Show floating "back to top" only after meaningful scroll depth.
     const onScroll = () => setShowScrollTop(window.scrollY > 300);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   const handleLogoRefresh = useCallback(() => {
+    // Reset local UI state before a hard reload so stale mode/hash does not linger.
     setMode("verifier");
     setShowChainDetails(false);
     setFileName("");

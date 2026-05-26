@@ -27,6 +27,9 @@ const projectId =
 const normalizedNetwork = normalizeNetworkName(
   DEPLOYED_NETWORK_NAME,
 ).toLowerCase();
+/**
+ * Keep supported wallet chain strict to the deployment target.
+ */
 const targetChain = normalizedNetwork === "base" ? base : baseSepolia;
 
 export const supportedChains = [targetChain] as const;
@@ -50,6 +53,7 @@ const connectors = projectId
       },
     )
   : [
+      // Fallback connector set keeps local/dev environments usable without a project ID.
       injected(),
       metaMask(),
       coinbaseWallet({ appName: "Receiptuary" }),
@@ -59,6 +63,9 @@ const connectors = projectId
       }),
     ];
 
+/**
+ * Shared wagmi config used by the app provider tree.
+ */
 export const wagmiConfig = createConfig({
   chains: supportedChains,
   connectors,

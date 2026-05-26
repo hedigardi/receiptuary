@@ -8,6 +8,7 @@ interface IERC20 {
 /// @title Receiptuary
 /// @notice Anchors SHA-256 hashes of receipt files so documents can be verified later.
 contract Receiptuary {
+    // Stored by file hash so verification is an O(1) lookup by bytes32 fingerprint.
     struct Receipt {
         string issuerName;
         string referenceId;
@@ -17,6 +18,7 @@ contract Receiptuary {
     }
 
     mapping(bytes32 => Receipt) private _receipts;
+    // Immutable fee configuration is set once at deployment to avoid runtime reconfiguration risk.
     IERC20 public immutable feeToken;
     address public immutable feeRecipient;
     uint256 public immutable feeAmount;
@@ -44,6 +46,7 @@ contract Receiptuary {
         require(!_receipts[fileHash].isRegistered, "Receiptuary: Hash already registered");
         require(bytes(issuerName).length > 0, "Receiptuary: Issuer name cannot be empty");
 
+        // If a fee is configured, registration requires a successful token transfer first.
         if (feeAmount > 0) {
             bool paymentOk = feeToken.transferFrom(msg.sender, feeRecipient, feeAmount);
             require(paymentOk, "Receiptuary: Fee transfer failed");
@@ -77,6 +80,7 @@ contract Receiptuary {
     {
         Receipt memory receipt = _receipts[fileHash];
 
+        // Return a full snapshot so clients can display issuer details and verification metadata.
         return (
             receipt.issuerName,
             receipt.referenceId,

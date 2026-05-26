@@ -1,3 +1,6 @@
+/**
+ * Calculates a deterministic SHA-256 hash for a file in the browser.
+ */
 export async function calculateFileHash(file: File): Promise<`0x${string}`> {
   const arrayBuffer = await file.arrayBuffer();
   const hashBuffer = await crypto.subtle.digest("SHA-256", arrayBuffer);
@@ -9,6 +12,9 @@ export async function calculateFileHash(file: File): Promise<`0x${string}`> {
   return `0x${hashHex}`;
 }
 
+/**
+ * Shortens a long hash for UI display while preserving start and end segments.
+ */
 export function truncateHash(hash: string, size = 8): string {
   if (hash.length <= size * 2) {
     return hash;

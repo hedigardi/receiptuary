@@ -34,11 +34,15 @@ function getFallbackMessage(context: ErrorContext): string {
   }
 }
 
+/**
+ * Maps provider/wallet/raw errors into user-friendly messages by context.
+ */
 export function toUserFriendlyError(
   caught: unknown,
   context: ErrorContext,
 ): string {
   const raw = extractErrorMessage(caught);
+  // Normalize once so keyword checks are case-insensitive and predictable.
   const normalized = raw.toLowerCase();
 
   if (!normalized) {
@@ -117,6 +121,9 @@ export function toUserFriendlyError(
   return getFallbackMessage(context);
 }
 
+/**
+ * Returns raw technical details for expandable debug output in the UI.
+ */
 export function getTechnicalErrorDetails(caught: unknown): string | null {
   const message = extractErrorMessage(caught).trim();
   return message.length > 0 ? message : null;

@@ -23,6 +23,7 @@ export function ReceiptDropzone({ onHashed }: Props) {
       setLocalError(null);
 
       try {
+        // Hashing is performed locally in-browser; the file contents are never uploaded.
         const hash = await calculateFileHash(selected);
         onHashed(selected, hash);
       } catch {
@@ -36,6 +37,7 @@ export function ReceiptDropzone({ onHashed }: Props) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
+    // Only accept receipt PDFs to keep hashing/verifier UX predictable.
     accept: { "application/pdf": [".pdf"] },
     multiple: false,
   });

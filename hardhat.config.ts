@@ -6,8 +6,18 @@ dotenv.config();
 
 const deployerKey = process.env.DEPLOYER_PRIVATE_KEY;
 const accounts = deployerKey ? [deployerKey] : [];
-const networks: Record<string, unknown> = {};
+type HttpL1NetworkConfig = {
+  type: "http";
+  chainType: "l1";
+  url: string;
+  accounts: string[];
+};
 
+const networks: Record<string, HttpL1NetworkConfig> = {};
+
+/**
+ * Registers remote networks only when the corresponding RPC URL is configured.
+ */
 if (process.env.BASE_SEPOLIA_RPC_URL) {
   networks.baseSepolia = {
     type: "http",
@@ -26,6 +36,9 @@ if (process.env.BASE_MAINNET_RPC_URL) {
   };
 }
 
+/**
+ * Enables optimizer for more gas-efficient production deployments.
+ */
 const config = defineConfig({
   plugins: [hardhatEthers],
   solidity: {

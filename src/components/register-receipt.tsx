@@ -107,6 +107,7 @@ export function RegisterReceipt({ fileHash }: Props) {
       return;
     }
 
+    // After approve is mined, refresh allowance/balance so CTA states update immediately.
     void refetchAllowance();
     void refetchTokenBalance();
   }, [isApproveSuccess, refetchAllowance, refetchTokenBalance]);
@@ -152,6 +153,7 @@ export function RegisterReceipt({ fileHash }: Props) {
     !hasEnoughAllowance ||
     !hasEnoughBalance;
 
+  // Approval is separated from register to follow ERC-20 allowance flow explicitly.
   const approveDisabled =
     !IS_PAID_REGISTRATION_ENABLED ||
     !IS_CONTRACT_CONFIGURED ||
@@ -185,6 +187,7 @@ export function RegisterReceipt({ fileHash }: Props) {
       return;
     }
 
+    // Register call only happens once all guards pass (wallet, fee consent, allowance, balance).
     writeRegister({
       address: CONTRACT_ADDRESS,
       abi: RECEIPTUARY_ABI,

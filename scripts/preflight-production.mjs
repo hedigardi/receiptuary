@@ -6,6 +6,9 @@ dotenv.config();
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 const INTEGER_RE = /^\d+$/;
 
+/**
+ * Required keys for production deployment and frontend runtime consistency.
+ */
 const REQUIRED_ENV = [
   "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID",
   "NEXT_PUBLIC_USDC_TOKEN_ADDRESS",
@@ -47,6 +50,9 @@ for (const key of REQUIRED_ENV) {
   }
 }
 
+/**
+ * `issues` fail preflight; `warnings` are informational and may be temporary.
+ */
 const issues = [];
 const warnings = [];
 

@@ -28,6 +28,7 @@ const walletDarkTheme = darkTheme({
 });
 
 function RainbowKitWithTheme({ children }: { children: React.ReactNode }) {
+  // Use resolvedTheme so wallet modals match current light/dark mode after hydration.
   const { resolvedTheme } = useTheme();
   return (
     <RainbowKitProvider
@@ -39,6 +40,7 @@ function RainbowKitWithTheme({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  // Keep one stable query client instance for the whole app lifecycle.
   const [queryClient] = useState(() => new QueryClient());
 
   return (
