@@ -263,11 +263,7 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
               <h1 className="sr-only">Receiptuary - Is it real?</h1>
             </div>
 
-            <div
-              className={`relative flex w-full flex-nowrap items-center justify-end gap-2 self-start md:w-auto md:self-auto ${
-                isWalletOnWrongChain ? "pb-11 md:pb-10" : ""
-              }`}
-            >
+            <div className="relative flex w-full flex-nowrap items-center justify-end gap-2 self-start md:w-auto md:self-auto">
               {isConnected || isAdminView ? (
                 <div className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-1">
                   <Link
@@ -344,7 +340,7 @@ export function ReceiptuaryApp({ adminRoute = false }: ReceiptuaryAppProps) {
 
                   if (isWalletOnWrongChain) {
                     return (
-                      <div className="relative flex w-auto shrink-0 items-center justify-end">
+                      <div className="relative flex w-auto shrink-0 items-center justify-end pb-11 md:pb-10">
                         <button
                           type="button"
                           onClick={openAccountModal}
