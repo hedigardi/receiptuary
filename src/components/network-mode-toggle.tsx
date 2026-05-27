@@ -2,23 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 import {
   getModeSwitchTarget,
   getNetworkModeFromPathname,
 } from "@/lib/network-mode";
 
 export function NetworkModeToggle() {
-  const pathname = usePathname();
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const safePathname = isMounted ? (pathname ?? "/") : "/";
-  const mode = getNetworkModeFromPathname(safePathname);
-  const nextHref = getModeSwitchTarget(safePathname);
+  const pathname = usePathname() ?? "/";
+  const mode = getNetworkModeFromPathname(pathname);
+  const nextHref = getModeSwitchTarget(pathname);
 
   const isDemoMode = mode === "demo";
   const activeChainLabel = isDemoMode ? "Base Sepolia" : "Base Mainnet";

@@ -1,23 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted || !resolvedTheme) {
-    // Prevent hydration mismatch while `next-themes` resolves system preference on client.
-    return (
-      <div className="h-8 w-8 rounded-full border border-[var(--card-border)] bg-[var(--card)]" />
-    );
-  }
-
   const isDark = resolvedTheme === "dark";
 
   return (

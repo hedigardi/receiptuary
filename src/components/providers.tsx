@@ -8,7 +8,7 @@ import {
   lightTheme,
   darkTheme,
 } from "@rainbow-me/rainbowkit";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { ThemeProvider, useTheme } from "next-themes";
 import { WagmiProvider } from "wagmi";
@@ -33,14 +33,8 @@ const walletDarkTheme = darkTheme({
 function RainbowKitWithTheme({ children }: { children: React.ReactNode }) {
   // Use resolvedTheme so wallet modals match current light/dark mode after hydration.
   const { resolvedTheme } = useTheme();
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
   const walletTheme =
-    isMounted && resolvedTheme === "dark" ? walletDarkTheme : walletLightTheme;
+    (resolvedTheme ?? "light") === "dark" ? walletDarkTheme : walletLightTheme;
 
   return (
     <RainbowKitProvider theme={walletTheme}>{children}</RainbowKitProvider>
@@ -50,16 +44,8 @@ function RainbowKitWithTheme({ children }: { children: React.ReactNode }) {
 export function Providers({ children }: { children: React.ReactNode }) {
   // Keep one stable query client instance for the whole app lifecycle.
   const [queryClient] = useState(() => new QueryClient());
-  const pathname = usePathname();
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const networkMode = isMounted
-    ? getNetworkModeFromPathname(pathname ?? "/")
-    : "mainnet";
+  const pathname = usePathname() ?? "/";
+  const networkMode = getNetworkModeFromPathname(pathname);
   const wagmiConfig =
     networkMode === "demo" ? wagmiConfigDemo : wagmiConfigMainnet;
 
