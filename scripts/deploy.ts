@@ -76,9 +76,19 @@ async function main() {
   await contract.waitForDeployment();
 
   const deployedAddress = await contract.getAddress();
+  const deploymentTx = contract.deploymentTransaction();
+  const deploymentReceipt = deploymentTx
+    ? await ethers.provider.getTransactionReceipt(deploymentTx.hash)
+    : null;
   await syncFrontendContractConfig(deployedAddress, deployedNetworkName);
 
   console.log("Receiptuary deployed:", deployedAddress);
+  if (deploymentTx) {
+    console.log("Deployment tx:", deploymentTx.hash);
+  }
+  if (deploymentReceipt) {
+    console.log("Deployment block:", deploymentReceipt.blockNumber);
+  }
   console.log("Synced frontend config:", GENERATED_FILE_PATH);
 }
 

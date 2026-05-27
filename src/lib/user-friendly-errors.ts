@@ -83,6 +83,13 @@ export function toUserFriendlyError(
   }
 
   if (
+    normalized.includes("exceeds max transaction gas limit") ||
+    normalized.includes("max transaction gas limit")
+  ) {
+    return "The RPC rejected the gas limit for this transaction. We now send a safe fixed gas limit - please try again.";
+  }
+
+  if (
     normalized.includes("hash already registered") ||
     normalized.includes("already registered")
   ) {

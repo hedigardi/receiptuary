@@ -3,6 +3,7 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 import { IssuerAllowlistManager } from "@/components/issuer-allowlist-manager";
@@ -16,16 +17,8 @@ import {
   getChainLabel,
   getNetworkBadge,
 } from "@/lib/explorer";
-import {
-  CONTRACT_ADDRESS,
-  DEPLOYED_NETWORK_NAME,
-  IS_CONTRACT_CONFIGURED,
-} from "@/lib/receiptuary";
-import {
-  IS_PAID_REGISTRATION_ENABLED,
-  PAYMENT_FEE_DISPLAY,
-  PAYMENT_TOKEN_SYMBOL_FALLBACK,
-} from "@/lib/payment";
+import { getNetworkModeFromPathname } from "@/lib/network-mode";
+import { useRuntimeConfig } from "@/lib/runtime-config-context";
 import { truncateHash } from "@/lib/crypto";
 
 type Mode = "issuer" | "verifier";
@@ -41,6 +34,25 @@ export function ReceiptuaryApp({
   adminRoute = false,
   myReceiptsRoute = false,
 }: ReceiptuaryAppProps) {
+  const pathname = usePathname() ?? "/";
+  const networkMode = getNetworkModeFromPathname(pathname);
+  const routePrefix = networkMode === "demo" ? "/demo" : "";
+  const homeHref = routePrefix || "/";
+  const myReceiptsHref = `${routePrefix}/my-receipts`;
+  const adminHref = `${routePrefix}/admin`;
+  const contractEnvHint =
+    networkMode === "demo"
+      ? "NEXT_PUBLIC_DEMO_RECEIPTUARY_CONTRACT_ADDRESS"
+      : "NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS";
+  const { runtimeConfig } = useRuntimeConfig();
+  const {
+    contractAddress,
+    deployedNetworkName,
+    isContractConfigured,
+    isPaidRegistrationEnabled,
+    paymentFeeDisplay,
+    paymentTokenSymbolFallback,
+  } = runtimeConfig;
   // `mode` switches both explanatory copy and the right-side action panel.
   const [mode, setMode] = useState<Mode>("verifier");
   const [showChainDetails, setShowChainDetails] = useState(false);
@@ -54,8 +66,8 @@ export function ReceiptuaryApp({
     isConnected,
     chainId: connectedChainId,
   } = useAccount();
-  const networkBadge = getNetworkBadge(DEPLOYED_NETWORK_NAME);
-  const deployedChainId = getChainIdFromNetworkName(DEPLOYED_NETWORK_NAME);
+  const networkBadge = getNetworkBadge(deployedNetworkName);
+  const deployedChainId = getChainIdFromNetworkName(deployedNetworkName);
   const deployedChainLabel = deployedChainId
     ? getChainLabel(deployedChainId)
     : "the required network";
@@ -302,7 +314,7 @@ export function ReceiptuaryApp({
               {isConnected || isAdminView || isMyReceiptsView ? (
                 <div className="relative z-20 inline-flex shrink-0 items-center gap-1 rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-1">
                   <Link
-                    href="/"
+                    href={homeHref}
                     className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
                       !isAdminView && !isMyReceiptsView
                         ? "bg-[var(--accent)] text-white"
@@ -312,7 +324,7 @@ export function ReceiptuaryApp({
                     Home
                   </Link>
                   <Link
-                    href="/my-receipts"
+                    href={myReceiptsHref}
                     className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
                       isMyReceiptsView
                         ? "bg-[var(--accent)] text-white"
@@ -322,7 +334,7 @@ export function ReceiptuaryApp({
                     My receipts
                   </Link>
                   <Link
-                    href="/admin"
+                    href={adminHref}
                     className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
                       isAdminView
                         ? "bg-[var(--accent)] text-white"
@@ -469,14 +481,14 @@ export function ReceiptuaryApp({
             ) : null}
           </header>
 
-          {!IS_CONTRACT_CONFIGURED ? (
-            <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-              Contract address is missing. Add
-              NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS to your env file.
+          {!isContractConfigured ? (
+            <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
+              Contract address is missing for this mode. Set {contractEnvHint}{" "}
+              and refresh.
             </div>
           ) : null}
 
-          {IS_CONTRACT_CONFIGURED ? (
+          {isContractConfigured ? (
             <section className="mt-4 rounded-2xl border border-[var(--card-border)] bg-white/80 dark:bg-[var(--card)]/80 p-4 backdrop-blur">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div
@@ -528,7 +540,7 @@ export function ReceiptuaryApp({
                     Recommended verification: {deployedChainLabel}
                   </p>
                   <p className="mt-1 break-all font-[var(--font-mono)]">
-                    Contract: {CONTRACT_ADDRESS}
+                    Contract: {contractAddress}
                   </p>
                 </div>
               ) : null}
@@ -559,7 +571,7 @@ export function ReceiptuaryApp({
                       the My receipts page.
                     </p>
                     <Link
-                      href="/my-receipts"
+                      href={myReceiptsHref}
                       className="mt-3 inline-flex rounded-lg border border-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-[var(--accent)] transition hover:bg-[var(--accent-soft)]"
                     >
                       Open My receipts
@@ -642,18 +654,18 @@ export function ReceiptuaryApp({
                         </p>
                       </div>
                       <span className="shrink-0 whitespace-nowrap rounded-full border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-emerald-950/60 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-300 sm:px-2 sm:text-[11px]">
-                        {IS_PAID_REGISTRATION_ENABLED
+                        {isPaidRegistrationEnabled
                           ? "Paid action"
                           : "Currently free"}
                       </span>
                     </div>
                     <p className="mt-3 text-2xl font-bold text-emerald-900 dark:text-emerald-300">
-                      {IS_PAID_REGISTRATION_ENABLED
-                        ? `${PAYMENT_FEE_DISPLAY} ${PAYMENT_TOKEN_SYMBOL_FALLBACK}`
+                      {isPaidRegistrationEnabled
+                        ? `${paymentFeeDisplay} ${paymentTokenSymbolFallback}`
                         : "0"}
                     </p>
                     <p className="mt-1 text-xs text-emerald-900/90 dark:text-emerald-300/90">
-                      {IS_PAID_REGISTRATION_ENABLED
+                      {isPaidRegistrationEnabled
                         ? "Charged once per new registration."
                         : "No token payment configured in this environment."}
                     </p>
@@ -794,17 +806,17 @@ export function ReceiptuaryApp({
                     </div>
                   </div>
 
-                  {mode === "issuer" && IS_PAID_REGISTRATION_ENABLED ? (
+                  {mode === "issuer" && isPaidRegistrationEnabled ? (
                     <div className="rounded-2xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 p-3 text-xs text-emerald-900 dark:text-emerald-300">
                       Issuer registration is paid. Approve payment, then
                       register. Verification is free.
                     </div>
                   ) : null}
 
-                  {mode === "verifier" && IS_PAID_REGISTRATION_ENABLED ? (
+                  {mode === "verifier" && isPaidRegistrationEnabled ? (
                     <div className="rounded-2xl border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/50 p-3 text-xs text-sky-900 dark:text-sky-300">
-                      Verifier is free. {PAYMENT_FEE_DISPLAY}{" "}
-                      {PAYMENT_TOKEN_SYMBOL_FALLBACK} applies only to issuer
+                      Verifier is free. {paymentFeeDisplay}{" "}
+                      {paymentTokenSymbolFallback} applies only to issuer
                       registrations.
                     </div>
                   ) : null}

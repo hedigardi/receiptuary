@@ -12,12 +12,7 @@ import {
   getTechnicalErrorDetails,
   toUserFriendlyError,
 } from "@/lib/user-friendly-errors";
-import {
-  CONTRACT_ADDRESS,
-  DEPLOYED_NETWORK_NAME,
-  IS_CONTRACT_CONFIGURED,
-  RECEIPTUARY_ABI,
-} from "@/lib/receiptuary";
+import { useRuntimeConfig } from "@/lib/runtime-config-context";
 
 type Props = {
   fileHash: `0x${string}`;
@@ -26,26 +21,33 @@ type Props = {
 type ReceiptTuple = readonly [string, bigint, `0x${string}`, boolean];
 
 export function VerifyReceipt({ fileHash }: Props) {
+  const { runtimeConfig } = useRuntimeConfig();
+  const {
+    contractAddress,
+    deployedNetworkName,
+    isContractConfigured,
+    receiptuaryAbi,
+  } = runtimeConfig;
   const chainId = useChainId();
-  const deployedChainId = getChainIdFromNetworkName(DEPLOYED_NETWORK_NAME);
+  const deployedChainId = getChainIdFromNetworkName(deployedNetworkName);
   const deployedChainLabel = deployedChainId
     ? getChainLabel(deployedChainId)
     : "the required network";
   const { data, isLoading, error } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: RECEIPTUARY_ABI,
+    address: contractAddress,
+    abi: receiptuaryAbi,
     functionName: "getReceipt",
     args: [fileHash],
     query: {
-      enabled: IS_CONTRACT_CONFIGURED && !!fileHash,
+      enabled: isContractConfigured && !!fileHash,
     },
   });
 
-  if (!IS_CONTRACT_CONFIGURED) {
+  if (!isContractConfigured) {
     return (
       <div className="rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm text-amber-800">
-        Add NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS to env to verify against
-        the blockchain.
+        Add the contract address env value for this mode to verify against the
+        blockchain.
       </div>
     );
   }
@@ -104,10 +106,10 @@ export function VerifyReceipt({ fileHash }: Props) {
       false,
     ];
 
-  const contractExplorerUrl = getExplorerAddressUrl(chainId, CONTRACT_ADDRESS);
+  const contractExplorerUrl = getExplorerAddressUrl(chainId, contractAddress);
   const eventSearchUrl = getExplorerReceiptEventLogsUrl(
     chainId,
-    CONTRACT_ADDRESS,
+    contractAddress,
   );
   const issuerSearchUrl = getExplorerSearchUrl(chainId, registeredBy);
 
