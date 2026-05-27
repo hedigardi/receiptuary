@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   getNetworkModeFromPathname,
@@ -22,8 +22,17 @@ export function RuntimeConfigProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname() ?? "/";
-  const networkMode = getNetworkModeFromPathname(pathname);
+  const pathname = usePathname();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Keep first server/client render deterministic to avoid hydration mismatch.
+  const networkMode: NetworkMode = isMounted
+    ? getNetworkModeFromPathname(pathname ?? "/")
+    : "mainnet";
   const runtimeConfig = useMemo(
     () => getRuntimeConfig(networkMode),
     [networkMode],

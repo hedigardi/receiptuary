@@ -3,7 +3,6 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 import { IssuerAllowlistManager } from "@/components/issuer-allowlist-manager";
@@ -17,7 +16,6 @@ import {
   getChainLabel,
   getNetworkBadge,
 } from "@/lib/explorer";
-import { getNetworkModeFromPathname } from "@/lib/network-mode";
 import { useRuntimeConfig } from "@/lib/runtime-config-context";
 import { truncateHash } from "@/lib/crypto";
 
@@ -34,8 +32,7 @@ export function ReceiptuaryApp({
   adminRoute = false,
   myReceiptsRoute = false,
 }: ReceiptuaryAppProps) {
-  const pathname = usePathname() ?? "/";
-  const networkMode = getNetworkModeFromPathname(pathname);
+  const { runtimeConfig, networkMode } = useRuntimeConfig();
   const routePrefix = networkMode === "demo" ? "/demo" : "";
   const homeHref = routePrefix || "/";
   const myReceiptsHref = `${routePrefix}/my-receipts`;
@@ -44,7 +41,6 @@ export function ReceiptuaryApp({
     networkMode === "demo"
       ? "NEXT_PUBLIC_DEMO_RECEIPTUARY_CONTRACT_ADDRESS"
       : "NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS";
-  const { runtimeConfig } = useRuntimeConfig();
   const {
     contractAddress,
     deployedNetworkName,
