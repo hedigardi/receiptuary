@@ -6,6 +6,7 @@ It hashes PDF receipts locally in the browser with SHA-256, anchors the hash on-
 ## Current product state
 
 - Primary network: Base mainnet
+- Demo route: `/demo` on Base Sepolia (same UI, isolated network config)
 - Paid registration: enabled (token approval + registration)
 - Payment model: fixed fee per registration (configured via env)
 - Upload format: PDF only
@@ -60,6 +61,16 @@ Copy-Item .env.example .env
 - `NEXT_PUBLIC_USDC_TOKEN_ADDRESS`
 - `NEXT_PUBLIC_RECEIPTUARY_FEE_RECIPIENT`
 - `NEXT_PUBLIC_RECEIPTUARY_FEE_AMOUNT` (example `1000000` for 1.00 USDC with 6 decimals)
+
+Optional demo/testnet frontend env vars (used by `/demo`):
+
+- `NEXT_PUBLIC_DEMO_RECEIPTUARY_NETWORK` (default: `base_sepolia`)
+- `NEXT_PUBLIC_DEMO_RECEIPTUARY_CONTRACT_ADDRESS`
+- `NEXT_PUBLIC_DEMO_USDC_TOKEN_ADDRESS`
+- `NEXT_PUBLIC_DEMO_RECEIPTUARY_FEE_RECIPIENT`
+- `NEXT_PUBLIC_DEMO_RECEIPTUARY_FEE_AMOUNT`
+- `NEXT_PUBLIC_DEMO_RECEIPTUARY_DEPLOYMENT_BLOCK`
+- `NEXT_PUBLIC_BASE_SEPOLIA_FALLBACK_RPC_URL`
 
 `NEXT_PUBLIC_RECEIPTUARY_DEPLOYMENT_BLOCK` limits issuer admin event scans to contract lifetime and reduces RPC rate-limit errors.
 `NEXT_PUBLIC_BASE_FALLBACK_RPC_URL` is used as automatic failover for issuer admin log reads if the primary Base RPC is rate-limited.

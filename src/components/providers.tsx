@@ -9,9 +9,12 @@ import {
   darkTheme,
 } from "@rainbow-me/rainbowkit";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { ThemeProvider, useTheme } from "next-themes";
 import { WagmiProvider } from "wagmi";
-import { wagmiConfig } from "@/lib/wagmi";
+import { wagmiConfigDemo, wagmiConfigMainnet } from "@/lib/wagmi";
+import { getNetworkModeFromPathname } from "@/lib/network-mode";
+import { RuntimeConfigProvider } from "@/lib/runtime-config-context";
 
 const walletLightTheme = lightTheme({
   accentColor: "#03624c",
@@ -42,12 +45,18 @@ function RainbowKitWithTheme({ children }: { children: React.ReactNode }) {
 export function Providers({ children }: { children: React.ReactNode }) {
   // Keep one stable query client instance for the whole app lifecycle.
   const [queryClient] = useState(() => new QueryClient());
+  const pathname = usePathname() ?? "/";
+  const networkMode = getNetworkModeFromPathname(pathname);
+  const wagmiConfig =
+    networkMode === "demo" ? wagmiConfigDemo : wagmiConfigMainnet;
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
-          <RainbowKitWithTheme>{children}</RainbowKitWithTheme>
+          <RuntimeConfigProvider>
+            <RainbowKitWithTheme>{children}</RainbowKitWithTheme>
+          </RuntimeConfigProvider>
         </QueryClientProvider>
       </WagmiProvider>
     </ThemeProvider>

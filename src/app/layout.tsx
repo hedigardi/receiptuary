@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
+import { NetworkModeToggle } from "@/components/network-mode-toggle";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -99,6 +100,7 @@ export default function RootLayout({
       className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <NetworkModeToggle />
         <Providers>{children}</Providers>
       </body>
     </html>

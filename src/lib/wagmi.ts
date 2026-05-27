@@ -13,8 +13,6 @@ import {
 } from "@rainbow-me/rainbowkit/wallets";
 import { createConfig, http } from "wagmi";
 import { base, baseSepolia } from "wagmi/chains";
-import { normalizeNetworkName } from "@/lib/explorer";
-import { DEPLOYED_NETWORK_NAME } from "@/lib/receiptuary";
 
 const configuredProjectId =
   process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID?.trim();
@@ -24,15 +22,8 @@ const projectId =
     ? configuredProjectId
     : null;
 
-const normalizedNetwork = normalizeNetworkName(
-  DEPLOYED_NETWORK_NAME,
-).toLowerCase();
-/**
- * Keep supported wallet chain strict to the deployment target.
- */
-const targetChain = normalizedNetwork === "base" ? base : baseSepolia;
-
-export const supportedChains = [targetChain] as const;
+export const mainnetChains = [base] as const;
+export const demoChains = [baseSepolia] as const;
 
 const connectors = projectId
   ? connectorsForWallets(
@@ -64,13 +55,24 @@ const connectors = projectId
     ];
 
 /**
- * Shared wagmi config used by the app provider tree.
+ * Mainnet wallet config used by production routes.
  */
-export const wagmiConfig = createConfig({
-  chains: supportedChains,
+export const wagmiConfigMainnet = createConfig({
+  chains: mainnetChains,
   connectors,
   transports: {
     [base.id]: http(),
+  },
+  ssr: true,
+});
+
+/**
+ * Testnet wallet config used by /demo routes.
+ */
+export const wagmiConfigDemo = createConfig({
+  chains: demoChains,
+  connectors,
+  transports: {
     [baseSepolia.id]: http(),
   },
   ssr: true,

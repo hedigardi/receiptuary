@@ -10,31 +10,33 @@ import {
 } from "wagmi";
 import { formatUnits } from "viem";
 import { getExplorerTxUrl } from "@/lib/explorer";
-import {
-  ERC20_ABI,
-  IS_PAID_REGISTRATION_ENABLED,
-  PAYMENT_FEE_AMOUNT,
-  PAYMENT_RECIPIENT_ADDRESS,
-  PAYMENT_TOKEN_ADDRESS,
-  PAYMENT_TOKEN_SYMBOL_FALLBACK,
-} from "@/lib/payment";
+import { ERC20_ABI } from "@/lib/payment";
 import {
   getTechnicalErrorDetails,
   toUserFriendlyError,
 } from "@/lib/user-friendly-errors";
-import {
-  CONTRACT_ADDRESS,
-  IS_CONTRACT_CONFIGURED,
-  RECEIPTUARY_ABI,
-} from "@/lib/receiptuary";
+import { useRuntimeConfig } from "@/lib/runtime-config-context";
 
 type Props = {
   fileHash: `0x${string}`;
 };
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
+const ERC20_APPROVE_GAS_LIMIT = 120_000n;
+const REGISTER_RECEIPT_GAS_LIMIT = 450_000n;
 
 export function RegisterReceipt({ fileHash }: Props) {
+  const { runtimeConfig } = useRuntimeConfig();
+  const {
+    contractAddress,
+    isContractConfigured,
+    isPaidRegistrationEnabled,
+    paymentFeeAmount,
+    paymentRecipientAddress,
+    paymentTokenAddress,
+    paymentTokenSymbolFallback,
+    receiptuaryAbi,
+  } = runtimeConfig;
   const { address: userAddress, isConnected } = useAccount();
   const chainId = useChainId();
   const [issuerName, setIssuerName] = useState("");
@@ -54,50 +56,50 @@ export function RegisterReceipt({ fileHash }: Props) {
   } = useWriteContract();
 
   const { data: tokenSymbol } = useReadContract({
-    address: PAYMENT_TOKEN_ADDRESS,
+    address: paymentTokenAddress,
     abi: ERC20_ABI,
     functionName: "symbol",
     query: {
-      enabled: IS_PAID_REGISTRATION_ENABLED,
+      enabled: isPaidRegistrationEnabled,
     },
   });
 
   const { data: tokenDecimals } = useReadContract({
-    address: PAYMENT_TOKEN_ADDRESS,
+    address: paymentTokenAddress,
     abi: ERC20_ABI,
     functionName: "decimals",
     query: {
-      enabled: IS_PAID_REGISTRATION_ENABLED,
+      enabled: isPaidRegistrationEnabled,
     },
   });
 
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
-    address: PAYMENT_TOKEN_ADDRESS,
+    address: paymentTokenAddress,
     abi: ERC20_ABI,
     functionName: "allowance",
-    args: [userAddress ?? ZERO_ADDRESS, CONTRACT_ADDRESS],
+    args: [userAddress ?? ZERO_ADDRESS, contractAddress],
     query: {
-      enabled: IS_PAID_REGISTRATION_ENABLED,
+      enabled: isPaidRegistrationEnabled,
     },
   });
 
   const { data: tokenBalance, refetch: refetchTokenBalance } = useReadContract({
-    address: PAYMENT_TOKEN_ADDRESS,
+    address: paymentTokenAddress,
     abi: ERC20_ABI,
     functionName: "balanceOf",
     args: [userAddress ?? ZERO_ADDRESS],
     query: {
-      enabled: IS_PAID_REGISTRATION_ENABLED,
+      enabled: isPaidRegistrationEnabled,
     },
   });
 
   const { data: isIssuerApproved } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: RECEIPTUARY_ABI,
+    address: contractAddress,
+    abi: receiptuaryAbi,
     functionName: "isIssuerApproved",
     args: [userAddress ?? ZERO_ADDRESS],
     query: {
-      enabled: IS_CONTRACT_CONFIGURED && !!userAddress,
+      enabled: isContractConfigured && !!userAddress,
     },
   });
 
@@ -129,14 +131,14 @@ export function RegisterReceipt({ fileHash }: Props) {
     return () => window.clearTimeout(retryTimer);
   }, [isApproveSuccess, refetchAllowance, refetchTokenBalance]);
 
-  const resolvedSymbol = tokenSymbol || PAYMENT_TOKEN_SYMBOL_FALLBACK;
+  const resolvedSymbol = tokenSymbol || paymentTokenSymbolFallback;
   const resolvedDecimals = Number(tokenDecimals ?? 6);
   const feeDisplay = useMemo(
-    () => formatUnits(PAYMENT_FEE_AMOUNT, resolvedDecimals),
-    [resolvedDecimals],
+    () => formatUnits(paymentFeeAmount, resolvedDecimals),
+    [paymentFeeAmount, resolvedDecimals],
   );
-  const hasEnoughAllowance = (allowance ?? BigInt(0)) >= PAYMENT_FEE_AMOUNT;
-  const hasEnoughBalance = (tokenBalance ?? BigInt(0)) >= PAYMENT_FEE_AMOUNT;
+  const hasEnoughAllowance = (allowance ?? BigInt(0)) >= paymentFeeAmount;
+  const hasEnoughBalance = (tokenBalance ?? BigInt(0)) >= paymentFeeAmount;
   const approveExplorerUrl = approveTxHash
     ? getExplorerTxUrl(chainId, approveTxHash)
     : null;
@@ -158,8 +160,8 @@ export function RegisterReceipt({ fileHash }: Props) {
   const hasIssuerApproval = isIssuerApproved === true;
 
   const submitDisabled =
-    !IS_CONTRACT_CONFIGURED ||
-    !IS_PAID_REGISTRATION_ENABLED ||
+    !isContractConfigured ||
+    !isPaidRegistrationEnabled ||
     !isConnected ||
     !issuerName.trim() ||
     !fileHash ||
@@ -174,8 +176,8 @@ export function RegisterReceipt({ fileHash }: Props) {
 
   // Approval is separated from register to follow ERC-20 allowance flow explicitly.
   const approveDisabled =
-    !IS_PAID_REGISTRATION_ENABLED ||
-    !IS_CONTRACT_CONFIGURED ||
+    !isPaidRegistrationEnabled ||
+    !isContractConfigured ||
     !isConnected ||
     !fileHash ||
     !acceptedFee ||
@@ -241,10 +243,11 @@ export function RegisterReceipt({ fileHash }: Props) {
     }
 
     writeApprove({
-      address: PAYMENT_TOKEN_ADDRESS,
+      address: paymentTokenAddress,
       abi: ERC20_ABI,
       functionName: "approve",
-      args: [CONTRACT_ADDRESS, PAYMENT_FEE_AMOUNT],
+      args: [contractAddress, paymentFeeAmount],
+      gas: ERC20_APPROVE_GAS_LIMIT,
     });
   };
 
@@ -257,10 +260,11 @@ export function RegisterReceipt({ fileHash }: Props) {
 
     // Register call only happens once all guards pass (wallet, fee consent, allowance, balance).
     writeRegister({
-      address: CONTRACT_ADDRESS,
-      abi: RECEIPTUARY_ABI,
+      address: contractAddress,
+      abi: receiptuaryAbi,
       functionName: "registerReceipt",
       args: [fileHash, issuerName.trim()],
+      gas: REGISTER_RECEIPT_GAS_LIMIT,
     });
   };
 
@@ -287,7 +291,7 @@ export function RegisterReceipt({ fileHash }: Props) {
         Issuer: Register receipt (paid)
       </h3>
 
-      {!IS_PAID_REGISTRATION_ENABLED ? (
+      {!isPaidRegistrationEnabled ? (
         <div className="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/60 p-3 text-sm text-amber-900 dark:text-amber-300">
           Paid registration is not fully configured. Add
           NEXT_PUBLIC_USDC_TOKEN_ADDRESS, NEXT_PUBLIC_RECEIPTUARY_FEE_RECIPIENT,
@@ -307,7 +311,7 @@ export function RegisterReceipt({ fileHash }: Props) {
         <p className="mt-1">
           {feeDisplay} {resolvedSymbol} per registration
         </p>
-        <p className="mt-1 break-all">Recipient: {PAYMENT_RECIPIENT_ADDRESS}</p>
+        <p className="mt-1 break-all">Recipient: {paymentRecipientAddress}</p>
       </div>
 
       <label className="block">

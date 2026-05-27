@@ -2,19 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPublicClient, http, type Address, parseAbiItem } from "viem";
-import { base } from "viem/chains";
+import { base, baseSepolia } from "viem/chains";
 import { useChainId, usePublicClient } from "wagmi";
 import { truncateHash } from "@/lib/crypto";
-import { getExplorerTxUrl } from "@/lib/explorer";
+import { getChainIdFromNetworkName, getExplorerTxUrl } from "@/lib/explorer";
 import {
   getTechnicalErrorDetails,
   toUserFriendlyError,
 } from "@/lib/user-friendly-errors";
-import {
-  CONTRACT_ADDRESS,
-  IS_CONTRACT_CONFIGURED,
-  RECEIPTUARY_ABI,
-} from "@/lib/receiptuary";
+import { useRuntimeConfig } from "@/lib/runtime-config-context";
 
 type Props = {
   walletAddress: Address;
@@ -91,8 +87,6 @@ const LOG_RANGE_CHUNK_SIZE = 9_500n;
 const LOG_REQUEST_DELAY_MS = 140;
 const LOG_RETRY_ATTEMPTS = 5;
 const LOG_RETRY_BASE_DELAY_MS = 500;
-const FALLBACK_RPC_URL =
-  process.env.NEXT_PUBLIC_BASE_FALLBACK_RPC_URL?.trim() ?? "";
 const PAGE_SIZE = 6;
 const RECEIPT_LOG_CACHE_VERSION = "v1";
 
@@ -114,13 +108,17 @@ function downloadCsvFile(csv: string, filenamePrefix: string): void {
   URL.revokeObjectURL(url);
 }
 
-function getReceiptLogCacheKey(chainId: number, walletAddress: string): string {
+function getReceiptLogCacheKey(
+  chainId: number,
+  contractAddress: Address,
+  walletAddress: string,
+): string {
   return [
     "receiptuary",
     "issuer-logs",
     RECEIPT_LOG_CACHE_VERSION,
     chainId,
-    CONTRACT_ADDRESS.toLowerCase(),
+    contractAddress.toLowerCase(),
     walletAddress.toLowerCase(),
   ].join(":");
 }
@@ -147,19 +145,6 @@ function deserializeLogsFromCache(
     blockNumber: BigInt(log.blockNumber),
     logIndex: log.logIndex,
   }));
-}
-
-function parseDeploymentBlockFromEnv(): bigint | null {
-  const value = process.env.NEXT_PUBLIC_RECEIPTUARY_DEPLOYMENT_BLOCK?.trim();
-  if (!value) {
-    return null;
-  }
-
-  if (!/^\d+$/.test(value)) {
-    return null;
-  }
-
-  return BigInt(value);
 }
 
 function delay(ms: number): Promise<void> {
@@ -257,18 +242,29 @@ function LoadingReceiptsSkeleton({
 }
 
 export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
+  const { runtimeConfig } = useRuntimeConfig();
+  const {
+    contractAddress,
+    deployedNetworkName,
+    deploymentBlock,
+    fallbackRpcUrl,
+    isContractConfigured,
+    receiptuaryAbi,
+  } = runtimeConfig;
   const chainId = useChainId();
   const publicClient = usePublicClient();
+  const deployedChainId = getChainIdFromNetworkName(deployedNetworkName);
+  const fallbackChain = deployedChainId === baseSepolia.id ? baseSepolia : base;
   const fallbackPublicClient = useMemo(() => {
-    if (!FALLBACK_RPC_URL) {
+    if (!fallbackRpcUrl) {
       return null;
     }
 
     return createPublicClient({
-      chain: base,
-      transport: http(FALLBACK_RPC_URL),
+      chain: fallbackChain,
+      transport: http(fallbackRpcUrl),
     });
-  }, []);
+  }, [fallbackChain, fallbackRpcUrl]);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -280,16 +276,14 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [currentPage, setCurrentPage] = useState(1);
-  const deploymentBlockRef = useRef<bigint | null>(
-    parseDeploymentBlockFromEnv(),
-  );
+  const deploymentBlockRef = useRef<bigint | null>(deploymentBlock);
   const primaryReadClient = publicClient as IssuerReadClient | null;
   const secondaryReadClient = fallbackPublicClient as IssuerReadClient | null;
 
   const walletAddressLower = walletAddress.toLowerCase();
   const cacheKey = useMemo(
-    () => getReceiptLogCacheKey(chainId, walletAddressLower),
-    [chainId, walletAddressLower],
+    () => getReceiptLogCacheKey(chainId, contractAddress, walletAddressLower),
+    [chainId, contractAddress, walletAddressLower],
   );
 
   const getContractDeploymentBlock = useCallback(async () => {
@@ -304,7 +298,7 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
 
     const latestBlock = await activeClient.getBlockNumber();
     const latestCode = await activeClient.getCode({
-      address: CONTRACT_ADDRESS,
+      address: contractAddress,
       blockNumber: latestBlock,
     });
 
@@ -320,7 +314,7 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
     while (low < high) {
       const mid = (low + high) / 2n;
       const codeAtMid = await activeClient.getCode({
-        address: CONTRACT_ADDRESS,
+        address: contractAddress,
         blockNumber: mid,
       });
 
@@ -333,7 +327,7 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
 
     deploymentBlockRef.current = low;
     return low;
-  }, [primaryReadClient, secondaryReadClient]);
+  }, [contractAddress, primaryReadClient, secondaryReadClient]);
 
   const getLogsWithRetry = useCallback(
     async (
@@ -348,7 +342,7 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
       for (let attempt = 0; attempt <= LOG_RETRY_ATTEMPTS; attempt += 1) {
         try {
           return await activeClient.getLogs({
-            address: CONTRACT_ADDRESS,
+            address: contractAddress,
             event: RECEIPT_REGISTERED_EVENT,
             args: {
               registeredBy: walletAddress,
@@ -371,7 +365,7 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
 
       return [];
     },
-    [walletAddress],
+    [contractAddress, walletAddress],
   );
 
   const fetchIssuerLogsWithClient = useCallback(
@@ -513,7 +507,7 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
   }, [fetchIssuerLogsWithClient, primaryReadClient, secondaryReadClient]);
 
   const loadReceipts = useCallback(async () => {
-    if (!IS_CONTRACT_CONFIGURED || !publicClient || wrongChain) {
+    if (!isContractConfigured || !publicClient || wrongChain) {
       setReceipts([]);
       setErrorMessage(null);
       setTechnicalError(null);
@@ -567,8 +561,8 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
       const fileHashes = [...latestPerHash.keys()];
       const result = await publicClient.multicall({
         contracts: fileHashes.map((fileHash) => ({
-          address: CONTRACT_ADDRESS,
-          abi: RECEIPTUARY_ABI,
+          address: contractAddress,
+          abi: receiptuaryAbi,
           functionName: "getReceipt",
           args: [fileHash],
         })),
@@ -622,7 +616,15 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
     } finally {
       setLoadingProgress(null);
     }
-  }, [fetchIssuerLogs, publicClient, walletAddressLower, wrongChain]);
+  }, [
+    contractAddress,
+    fetchIssuerLogs,
+    isContractConfigured,
+    publicClient,
+    receiptuaryAbi,
+    walletAddressLower,
+    wrongChain,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -828,11 +830,10 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
     downloadCsvFile(csv, "receiptuary-filtered-transactions");
   }, [chainId, filteredReceipts]);
 
-  if (!IS_CONTRACT_CONFIGURED) {
+  if (!isContractConfigured) {
     return (
       <section className="rounded-2xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/50 p-5 text-sm text-amber-900 dark:text-amber-300">
-        Add NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS to your env file to view
-        issuer data.
+        Add the contract address env value for this mode to view issuer data.
       </section>
     );
   }

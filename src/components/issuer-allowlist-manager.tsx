@@ -16,11 +16,7 @@ import {
   getTechnicalErrorDetails,
   toUserFriendlyError,
 } from "@/lib/user-friendly-errors";
-import {
-  CONTRACT_ADDRESS,
-  IS_CONTRACT_CONFIGURED,
-  RECEIPTUARY_ABI,
-} from "@/lib/receiptuary";
+import { useRuntimeConfig } from "@/lib/runtime-config-context";
 
 type Props = {
   walletAddress: Address;
@@ -77,11 +73,14 @@ function loadDirectoryEntries(storageKey: string): IssuerDirectoryEntry[] {
 }
 
 export function IssuerAllowlistManager({ walletAddress, wrongChain }: Props) {
+  const { runtimeConfig } = useRuntimeConfig();
+  const { contractAddress, isContractConfigured, receiptuaryAbi } =
+    runtimeConfig;
   const chainId = useChainId();
   const storageKey = useMemo(
     () =>
-      `receiptuary:issuer-directory:${chainId}:${CONTRACT_ADDRESS.toLowerCase()}`,
-    [chainId],
+      `receiptuary:issuer-directory:${chainId}:${contractAddress.toLowerCase()}`,
+    [chainId, contractAddress],
   );
   const [issuerInput, setIssuerInput] = useState("");
   const [issuerLabelInput, setIssuerLabelInput] = useState("");
@@ -109,22 +108,22 @@ export function IssuerAllowlistManager({ walletAddress, wrongChain }: Props) {
   ) as Address;
 
   const { data: ownerAddress } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: RECEIPTUARY_ABI,
+    address: contractAddress,
+    abi: receiptuaryAbi,
     functionName: "owner",
     query: {
-      enabled: IS_CONTRACT_CONFIGURED,
+      enabled: isContractConfigured,
     },
   });
 
   const { data: currentStatus, refetch: refetchCurrentStatus } =
     useReadContract({
-      address: CONTRACT_ADDRESS,
-      abi: RECEIPTUARY_ABI,
+      address: contractAddress,
+      abi: receiptuaryAbi,
       functionName: "isIssuerApproved",
       args: [issuerAddress],
       query: {
-        enabled: IS_CONTRACT_CONFIGURED && isValidIssuerAddress,
+        enabled: isContractConfigured && isValidIssuerAddress,
       },
     });
 
@@ -187,14 +186,14 @@ export function IssuerAllowlistManager({ walletAddress, wrongChain }: Props) {
     isFetching: directoryStatusesFetching,
   } = useReadContracts({
     contracts: filteredDirectoryEntries.map((entry) => ({
-      address: CONTRACT_ADDRESS,
-      abi: RECEIPTUARY_ABI,
+      address: contractAddress,
+      abi: receiptuaryAbi,
       functionName: "isIssuerApproved",
       args: [entry.address],
     })),
     query: {
       enabled:
-        IS_CONTRACT_CONFIGURED &&
+        isContractConfigured &&
         filteredDirectoryEntries.length > 0 &&
         !wrongChain,
     },
@@ -294,7 +293,7 @@ export function IssuerAllowlistManager({ walletAddress, wrongChain }: Props) {
     !isValidIssuerAddress ||
     isPending ||
     isConfirming ||
-    !IS_CONTRACT_CONFIGURED;
+    !isContractConfigured;
 
   const handleSubmit = () => {
     if (actionDisabled) {
@@ -309,8 +308,8 @@ export function IssuerAllowlistManager({ walletAddress, wrongChain }: Props) {
     });
 
     writeContract({
-      address: CONTRACT_ADDRESS,
-      abi: RECEIPTUARY_ABI,
+      address: contractAddress,
+      abi: receiptuaryAbi,
       functionName: "setIssuerApproval",
       args: [issuerAddress, desiredApproval],
     });
@@ -349,8 +348,8 @@ export function IssuerAllowlistManager({ walletAddress, wrongChain }: Props) {
     setMode(action);
 
     writeContract({
-      address: CONTRACT_ADDRESS,
-      abi: RECEIPTUARY_ABI,
+      address: contractAddress,
+      abi: receiptuaryAbi,
       functionName: "setIssuerApproval",
       args: [targetAddress, action === "approve"],
     });
