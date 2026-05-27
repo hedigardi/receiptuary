@@ -3,7 +3,8 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAccount } from "wagmi";
 import { IssuerAllowlistManager } from "@/components/issuer-allowlist-manager";
 import { IssuerAdminPanel } from "@/components/issuer-admin-panel";
@@ -32,6 +33,7 @@ export function ReceiptuaryApp({
   adminRoute = false,
   myReceiptsRoute = false,
 }: ReceiptuaryAppProps) {
+  const router = useRouter();
   const { runtimeConfig, networkMode } = useRuntimeConfig();
   const routePrefix = networkMode === "demo" ? "/demo" : "";
   const homeHref = routePrefix || "/";
@@ -71,6 +73,7 @@ export function ReceiptuaryApp({
     isConnected && !!deployedChainId && connectedChainId !== deployedChainId;
   const isAdminView = adminRoute;
   const isMyReceiptsView = myReceiptsRoute;
+  const hadConnectedWalletRef = useRef(isConnected);
   const mainClassName =
     isAdminView || isMyReceiptsView
       ? "grid-overlay flex flex-1 items-start justify-center px-4 py-10 md:px-10"
@@ -224,6 +227,19 @@ export function ReceiptuaryApp({
   }, []);
 
   useEffect(() => {
+    // If user disconnects while on protected sub-pages, return to home automatically.
+    if (
+      hadConnectedWalletRef.current &&
+      !isConnected &&
+      (isAdminView || isMyReceiptsView)
+    ) {
+      router.replace(homeHref);
+    }
+
+    hadConnectedWalletRef.current = isConnected;
+  }, [homeHref, isAdminView, isConnected, isMyReceiptsView, router]);
+
+  useEffect(() => {
     // Delay card reveal to the next paint for a smooth initial animation.
     const frame = window.requestAnimationFrame(() => {
       setPricingReady(true);
@@ -307,7 +323,7 @@ export function ReceiptuaryApp({
             </div>
 
             <div className="relative isolate flex w-full flex-wrap items-center justify-end gap-2 gap-y-2 self-start md:w-auto md:flex-nowrap md:self-auto">
-              {isConnected || isAdminView || isMyReceiptsView ? (
+              {isConnected ? (
                 <div className="relative z-20 inline-flex shrink-0 items-center gap-1 rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-1">
                   <Link
                     href={homeHref}
