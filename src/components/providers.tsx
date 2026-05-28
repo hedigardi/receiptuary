@@ -15,6 +15,7 @@ import { WagmiProvider } from "wagmi";
 import { wagmiConfigDemo, wagmiConfigMainnet } from "@/lib/wagmi";
 import { getNetworkModeFromPathname } from "@/lib/network-mode";
 import { RuntimeConfigProvider } from "@/lib/runtime-config-context";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const walletLightTheme = lightTheme({
   accentColor: "#03624c",
@@ -33,8 +34,9 @@ const walletDarkTheme = darkTheme({
 function RainbowKitWithTheme({ children }: { children: React.ReactNode }) {
   // Use resolvedTheme so wallet modals match current light/dark mode after hydration.
   const { resolvedTheme } = useTheme();
+  const hydrated = useHydrated();
   const walletTheme =
-    (resolvedTheme ?? "light") === "dark" ? walletDarkTheme : walletLightTheme;
+    hydrated && resolvedTheme === "dark" ? walletDarkTheme : walletLightTheme;
 
   return (
     <RainbowKitProvider theme={walletTheme}>{children}</RainbowKitProvider>

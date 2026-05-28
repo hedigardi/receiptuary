@@ -1,9 +1,18 @@
 "use client";
 
 import { useTheme } from "next-themes";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
+  const hydrated = useHydrated();
+
+  if (!hydrated) {
+    return (
+      <div className="h-8 w-8 rounded-full border border-[var(--card-border)] bg-[var(--card)]" />
+    );
+  }
+
   const isDark = resolvedTheme === "dark";
 
   return (
