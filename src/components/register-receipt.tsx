@@ -348,7 +348,7 @@ export function RegisterReceipt({ fileHash }: Props) {
       className="space-y-3 rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-5"
     >
       <h3 className="font-[var(--font-display)] text-lg font-semibold">
-        Issuer: Register receipt (paid)
+        Register receipt
       </h3>
 
       {!isPaidRegistrationEnabled ? (
@@ -455,8 +455,8 @@ export function RegisterReceipt({ fileHash }: Props) {
       ) : isConnected ? (
         <div className="space-y-2 rounded-xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 px-3 py-2 text-xs font-semibold text-emerald-900 dark:text-emerald-300">
           <p>
-            Payment approval is complete. You can now click &quot;Pay and
-            register receipt&quot;.
+            Payment approval is complete. You can now click &quot;Register
+            receipt&quot;.
           </p>
           {hasConfirmedApproval && !hasEnoughAllowance ? (
             <p className="font-normal text-emerald-900/80 dark:text-emerald-300/80">
@@ -475,7 +475,7 @@ export function RegisterReceipt({ fileHash }: Props) {
           ? "Confirm in wallet"
           : isRegisterConfirming
             ? "Writing to blockchain"
-            : "Pay and register receipt"}
+            : "Register receipt"}
       </button>
 
       {submitDisabled && submitBlockers.length > 0 ? (
