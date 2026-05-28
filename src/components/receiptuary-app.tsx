@@ -928,7 +928,7 @@ export function ReceiptuaryApp({
                     },
                     {
                       q: "Who can register receipts?",
-                      a: "Only issuer wallets approved by the contract owner can register receipts. If your wallet is not approved, ask your admin to allowlist it first.",
+                      a: "Any wallet can register receipts when fee payment is configured and approved. Allowlisted wallets are marked as trusted issuer profiles in the UI.",
                     },
                     {
                       q: "Why do I sometimes need to approve USDC again?",

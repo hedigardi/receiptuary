@@ -9,7 +9,11 @@ import {
   useWriteContract,
 } from "wagmi";
 import { formatUnits } from "viem";
-import { getExplorerTxUrl } from "@/lib/explorer";
+import {
+  getChainIdFromNetworkName,
+  getChainLabel,
+  getExplorerTxUrl,
+} from "@/lib/explorer";
 import { ERC20_ABI } from "@/lib/payment";
 import {
   getTechnicalErrorDetails,
@@ -29,6 +33,7 @@ export function RegisterReceipt({ fileHash }: Props) {
   const { runtimeConfig } = useRuntimeConfig();
   const {
     contractAddress,
+    deployedNetworkName,
     isContractConfigured,
     isPaidRegistrationEnabled,
     paymentFeeAmount,
@@ -39,6 +44,11 @@ export function RegisterReceipt({ fileHash }: Props) {
   } = runtimeConfig;
   const { address: userAddress, isConnected } = useAccount();
   const chainId = useChainId();
+  const requiredChainId = getChainIdFromNetworkName(deployedNetworkName);
+  const isWrongNetwork = !!requiredChainId && chainId !== requiredChainId;
+  const requiredChainLabel = requiredChainId
+    ? getChainLabel(requiredChainId)
+    : "the required network";
   const [issuerName, setIssuerName] = useState("");
   const [acceptedFee, setAcceptedFee] = useState(false);
   const [copyState, setCopyState] = useState<"idle" | "done">("idle");
@@ -103,6 +113,16 @@ export function RegisterReceipt({ fileHash }: Props) {
     },
   });
 
+  const { data: existingReceipt } = useReadContract({
+    address: contractAddress,
+    abi: receiptuaryAbi,
+    functionName: "getReceipt",
+    args: [fileHash],
+    query: {
+      enabled: isContractConfigured && !!fileHash,
+    },
+  });
+
   const { isLoading: isApproveConfirming, isSuccess: isApproveSuccess } =
     useWaitForTransactionReceipt({
       hash: approveTxHash,
@@ -139,6 +159,10 @@ export function RegisterReceipt({ fileHash }: Props) {
   );
   const hasEnoughAllowance = (allowance ?? BigInt(0)) >= paymentFeeAmount;
   const hasEnoughBalance = (tokenBalance ?? BigInt(0)) >= paymentFeeAmount;
+  const isHashAlreadyRegistered =
+    Array.isArray(existingReceipt) && existingReceipt[3] === true;
+  const hasConfirmedApproval = isApproveSuccess;
+  const canProceedAfterApproval = hasEnoughAllowance || hasConfirmedApproval;
   const approveExplorerUrl = approveTxHash
     ? getExplorerTxUrl(chainId, approveTxHash)
     : null;
@@ -163,15 +187,16 @@ export function RegisterReceipt({ fileHash }: Props) {
     !isContractConfigured ||
     !isPaidRegistrationEnabled ||
     !isConnected ||
+    isWrongNetwork ||
     !issuerName.trim() ||
     !fileHash ||
+    isHashAlreadyRegistered ||
     !acceptedFee ||
     isApprovePending ||
     isApproveConfirming ||
     isRegisterPending ||
     isRegisterConfirming ||
-    !hasIssuerApproval ||
-    !hasEnoughAllowance ||
+    !canProceedAfterApproval ||
     !hasEnoughBalance;
 
   // Approval is separated from register to follow ERC-20 allowance flow explicitly.
@@ -179,15 +204,45 @@ export function RegisterReceipt({ fileHash }: Props) {
     !isPaidRegistrationEnabled ||
     !isContractConfigured ||
     !isConnected ||
+    isWrongNetwork ||
     !fileHash ||
+    isHashAlreadyRegistered ||
     !acceptedFee ||
     isApprovePending ||
     isApproveConfirming ||
     isRegisterPending ||
     isRegisterConfirming ||
-    !hasIssuerApproval ||
-    hasEnoughAllowance ||
+    canProceedAfterApproval ||
     !hasEnoughBalance;
+
+  useEffect(() => {
+    if (
+      !isConnected ||
+      !isPaidRegistrationEnabled ||
+      !userAddress ||
+      hasEnoughAllowance
+    ) {
+      return;
+    }
+
+    const syncIntervalMs =
+      hasConfirmedApproval && !hasEnoughAllowance ? 1500 : 4000;
+
+    const interval = window.setInterval(() => {
+      void refetchAllowance();
+      void refetchTokenBalance();
+    }, syncIntervalMs);
+
+    return () => window.clearInterval(interval);
+  }, [
+    hasConfirmedApproval,
+    hasEnoughAllowance,
+    isConnected,
+    isPaidRegistrationEnabled,
+    refetchAllowance,
+    refetchTokenBalance,
+    userAddress,
+  ]);
 
   const submitBlockers = useMemo(() => {
     const blockers: string[] = [];
@@ -195,8 +250,14 @@ export function RegisterReceipt({ fileHash }: Props) {
     if (!isConnected) {
       blockers.push("Connect your wallet.");
     }
+    if (isWrongNetwork) {
+      blockers.push(`Switch wallet network to ${requiredChainLabel}.`);
+    }
     if (!fileHash) {
       blockers.push("Upload a receipt file first.");
+    }
+    if (isHashAlreadyRegistered) {
+      blockers.push("This receipt hash is already registered on-chain.");
     }
     if (!issuerName.trim()) {
       blockers.push("Enter issuer name.");
@@ -204,13 +265,10 @@ export function RegisterReceipt({ fileHash }: Props) {
     if (!acceptedFee) {
       blockers.push("Accept the fee checkbox.");
     }
-    if (!hasIssuerApproval) {
-      blockers.push("Wallet is not allowlisted as issuer.");
-    }
     if (!hasEnoughBalance) {
       blockers.push(`Insufficient ${resolvedSymbol} balance.`);
     }
-    if (!hasEnoughAllowance) {
+    if (!canProceedAfterApproval) {
       blockers.push(`Approve ${feeDisplay} ${resolvedSymbol} first.`);
     }
     if (isApprovePending || isApproveConfirming) {
@@ -225,15 +283,17 @@ export function RegisterReceipt({ fileHash }: Props) {
     acceptedFee,
     feeDisplay,
     fileHash,
-    hasEnoughAllowance,
+    canProceedAfterApproval,
     hasEnoughBalance,
-    hasIssuerApproval,
+    isHashAlreadyRegistered,
     isApproveConfirming,
     isApprovePending,
     isConnected,
+    isWrongNetwork,
     isRegisterConfirming,
     isRegisterPending,
     issuerName,
+    requiredChainLabel,
     resolvedSymbol,
   ]);
 
@@ -299,10 +359,31 @@ export function RegisterReceipt({ fileHash }: Props) {
         </div>
       ) : null}
 
+      {isConnected && isWrongNetwork ? (
+        <p className="text-xs text-amber-700 dark:text-amber-300">
+          Switch wallet network to {requiredChainLabel} before approving fee and
+          registering.
+        </p>
+      ) : null}
+
+      {fileHash && isHashAlreadyRegistered ? (
+        <p className="text-xs text-rose-700 dark:text-rose-300">
+          This file hash is already registered on-chain. Upload a different
+          receipt file to continue.
+        </p>
+      ) : null}
+
       {isConnected && !hasIssuerApproval ? (
         <p className="text-xs text-amber-700 dark:text-amber-300">
-          This wallet is not approved as an issuer. Ask admin to allowlist your
-          address before registering receipts.
+          This wallet is not currently allowlisted as a trusted issuer. You can
+          still register receipts, but verifiers may treat allowlisted issuers
+          as higher-trust profiles.
+        </p>
+      ) : null}
+
+      {isConnected && hasIssuerApproval ? (
+        <p className="text-xs text-emerald-700 dark:text-emerald-300">
+          Trusted issuer profile: this wallet is currently allowlisted.
         </p>
       ) : null}
 
@@ -358,7 +439,7 @@ export function RegisterReceipt({ fileHash }: Props) {
         </p>
       ) : null}
 
-      {isConnected && !hasEnoughAllowance ? (
+      {isConnected && !canProceedAfterApproval ? (
         <button
           type="button"
           onClick={handleApprove}
@@ -372,10 +453,17 @@ export function RegisterReceipt({ fileHash }: Props) {
               : `Approve ${feeDisplay} ${resolvedSymbol}`}
         </button>
       ) : isConnected ? (
-        <p className="rounded-xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 px-3 py-2 text-xs font-semibold text-emerald-900 dark:text-emerald-300">
-          Payment approval is complete. You can now click &quot;Pay and register
-          receipt&quot;.
-        </p>
+        <div className="space-y-2 rounded-xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 px-3 py-2 text-xs font-semibold text-emerald-900 dark:text-emerald-300">
+          <p>
+            Payment approval is complete. You can now click &quot;Pay and
+            register receipt&quot;.
+          </p>
+          {hasConfirmedApproval && !hasEnoughAllowance ? (
+            <p className="font-normal text-emerald-900/80 dark:text-emerald-300/80">
+              Approval tx is confirmed. Waiting for allowance sync from RPC.
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       <button

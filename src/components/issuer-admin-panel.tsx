@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPublicClient, http, type Address, parseAbiItem } from "viem";
 import { base, baseSepolia } from "viem/chains";
-import { useChainId, usePublicClient } from "wagmi";
+import { useChainId, usePublicClient, useReadContracts } from "wagmi";
 import { truncateHash } from "@/lib/crypto";
 import { getChainIdFromNetworkName, getExplorerTxUrl } from "@/lib/explorer";
 import {
@@ -748,6 +748,44 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
     ];
   }, [safeCurrentPage, totalPages]);
 
+  const trustAddressList = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          paginatedReceipts.map((receipt) =>
+            receipt.registeredBy.toLowerCase(),
+          ),
+        ),
+      ).map((address) => address as Address),
+    [paginatedReceipts],
+  );
+
+  const { data: trustStatusResults } = useReadContracts({
+    contracts: trustAddressList.map((address) => ({
+      address: contractAddress,
+      abi: receiptuaryAbi,
+      functionName: "isIssuerApproved",
+      args: [address],
+    })),
+    query: {
+      enabled:
+        isContractConfigured && !wrongChain && trustAddressList.length > 0,
+    },
+  });
+
+  const trustStatusByAddress = useMemo(() => {
+    const map = new Map<string, boolean>();
+
+    trustAddressList.forEach((address, index) => {
+      const result = trustStatusResults?.[index];
+      if (result?.status === "success") {
+        map.set(address.toLowerCase(), Boolean(result.result));
+      }
+    });
+
+    return map;
+  }, [trustAddressList, trustStatusResults]);
+
   const isFilterActive = searchTerm.trim().length > 0 || sortMode !== "newest";
 
   const handleExportCsv = useCallback(() => {
@@ -1057,6 +1095,9 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
 
           {paginatedReceipts.map((receipt) => {
             const txUrl = getExplorerTxUrl(chainId, receipt.txHash);
+            const isTrustedIssuer =
+              trustStatusByAddress.get(receipt.registeredBy.toLowerCase()) ??
+              null;
 
             return (
               <article
@@ -1067,6 +1108,23 @@ export function IssuerAdminPanel({ walletAddress, wrongChain }: Props) {
                   <div>
                     <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">
                       {receipt.issuerName || "Unnamed issuer"}
+                    </p>
+                    <p className="mt-1">
+                      <span
+                        className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
+                          isTrustedIssuer === true
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
+                            : isTrustedIssuer === false
+                              ? "border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-700 dark:bg-sky-950/50 dark:text-sky-300"
+                              : "border-stone-300 bg-stone-50 text-stone-700 dark:border-stone-600 dark:bg-stone-900/50 dark:text-stone-300"
+                        }`}
+                      >
+                        {isTrustedIssuer === true
+                          ? "Trusted issuer"
+                          : isTrustedIssuer === false
+                            ? "Open issuer"
+                            : "Checking trust"}
+                      </span>
                     </p>
                     <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
                       Registered: {formatTimestamp(receipt.timestamp)}

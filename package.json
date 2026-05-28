@@ -16,6 +16,9 @@
     "contract:deploy:base": "hardhat run scripts/deploy.ts --network baseSepolia",
     "contract:deploy:base:sepolia": "hardhat run scripts/deploy.ts --network baseSepolia",
     "contract:deploy:base:mainnet": "hardhat run scripts/deploy.ts --network base",
+    "migration:v2": "node scripts/v2-migration-checklist.mjs",
+    "migration:v2:base:sepolia": "node scripts/v2-migration-checklist.mjs --network=baseSepolia",
+    "migration:v2:base:mainnet": "node scripts/v2-migration-checklist.mjs --network=base",
     "contract:issuer:approve:base:sepolia": "hardhat run scripts/set-issuer-approval.ts --network baseSepolia",
     "contract:issuer:approve:base:mainnet": "hardhat run scripts/set-issuer-approval.ts --network base"
   },

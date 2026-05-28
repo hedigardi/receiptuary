@@ -43,6 +43,25 @@ export function VerifyReceipt({ fileHash }: Props) {
     },
   });
 
+  const [issuerName, timestamp, registeredBy, isRegistered] =
+    // Keep rendering resilient even if read data is temporarily undefined.
+    (data as ReceiptTuple | undefined) ?? [
+      "",
+      BigInt(0),
+      "0x0000000000000000000000000000000000000000",
+      false,
+    ];
+
+  const { data: isTrustedIssuer } = useReadContract({
+    address: contractAddress,
+    abi: receiptuaryAbi,
+    functionName: "isIssuerApproved",
+    args: [registeredBy],
+    query: {
+      enabled: isContractConfigured && isRegistered,
+    },
+  });
+
   if (!isContractConfigured) {
     return (
       <div className="rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm text-amber-800">
@@ -97,15 +116,6 @@ export function VerifyReceipt({ fileHash }: Props) {
     );
   }
 
-  const [issuerName, timestamp, registeredBy, isRegistered] =
-    // Keep rendering resilient even if read data is temporarily undefined.
-    (data as ReceiptTuple | undefined) ?? [
-      "",
-      BigInt(0),
-      "0x0000000000000000000000000000000000000000",
-      false,
-    ];
-
   const contractExplorerUrl = getExplorerAddressUrl(chainId, contractAddress);
   const eventSearchUrl = getExplorerReceiptEventLogsUrl(
     chainId,
@@ -123,6 +133,10 @@ export function VerifyReceipt({ fileHash }: Props) {
     >
       {isRegistered ? (
         <div className="space-y-2 text-sm">
+          <p>
+            Issuer trust profile:{" "}
+            {isTrustedIssuer ? "Allowlisted" : "Open issuer"}
+          </p>
           <p className="font-[var(--font-display)] text-lg font-semibold">
             Verified authentic
           </p>
