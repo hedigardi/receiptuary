@@ -10,7 +10,7 @@ It hashes PDF receipts locally in the browser with SHA-256, anchors the hash on-
 - Paid registration: enabled (token approval + registration)
 - Payment model: fixed fee per registration (configured via env)
 - Upload format: PDF only
-- Issuer protection: only owner-approved issuer wallets can register
+- Issuer trust profile: allowlist marks trusted issuers, but registration is open
 
 ## Features
 
@@ -115,6 +115,12 @@ Deploy commands:
 - Base Sepolia: `npm run contract:deploy:base:sepolia`
 - Base Mainnet: `npm run contract:deploy:base:mainnet`
 
+V2 migration checklist commands:
+
+- Both networks: `npm run migration:v2`
+- Base Sepolia only: `npm run migration:v2:base:sepolia`
+- Base Mainnet only: `npm run migration:v2:base:mainnet`
+
 Legacy alias:
 
 - `npm run contract:deploy:base` (same as Base Sepolia)
@@ -154,9 +160,9 @@ You can override contract address in frontend via:
 1. Upload PDF
 2. Local SHA-256 hash is generated
 3. Approve token spend in wallet
-4. Wallet must be owner-approved as issuer
-5. Confirm registration transaction
-6. Fee is transferred to configured recipient
+4. Confirm registration transaction
+5. Fee is transferred to configured recipient
+6. If wallet is allowlisted, UI marks it as trusted issuer profile
 
 ### Verifier flow
 

@@ -17,6 +17,7 @@ contract Receiptuary {
     }
 
     mapping(bytes32 => Receipt) private _receipts;
+    // Issuer approvals are maintained as an optional trust directory for clients/admin tools.
     mapping(address => bool) private _approvedIssuers;
     // Immutable fee configuration is set once at deployment to avoid runtime reconfiguration risk.
     IERC20 public immutable feeToken;
@@ -37,11 +38,6 @@ contract Receiptuary {
         _;
     }
 
-    modifier onlyApprovedIssuer() {
-        require(_approvedIssuers[msg.sender], "Receiptuary: Issuer not approved");
-        _;
-    }
-
     constructor(address feeTokenAddress, address feeRecipientAddress, uint256 feeAmountValue) {
         require(feeTokenAddress != address(0), "Receiptuary: Invalid fee token");
         require(feeRecipientAddress != address(0), "Receiptuary: Invalid fee recipient");
@@ -56,7 +52,7 @@ contract Receiptuary {
         emit IssuerApprovalUpdated(msg.sender, true);
     }
 
-    function registerReceipt(bytes32 fileHash, string calldata issuerName) external onlyApprovedIssuer {
+    function registerReceipt(bytes32 fileHash, string calldata issuerName) external {
         require(!_receipts[fileHash].isRegistered, "Receiptuary: Hash already registered");
         require(bytes(issuerName).length > 0, "Receiptuary: Issuer name cannot be empty");
 

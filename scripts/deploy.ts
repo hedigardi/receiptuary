@@ -26,6 +26,20 @@ function getNetworkNameFromChainId(chainId: number): string {
   }
 }
 
+function validateFeeConfigForNetwork(
+  networkName: string,
+  feeTokenAddress: string,
+) {
+  const normalizedToken = feeTokenAddress.toLowerCase();
+  const mainnetUsdc = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
+
+  if (networkName === "baseSepolia" && normalizedToken === mainnetUsdc) {
+    throw new Error(
+      "Deploy guard: Base Sepolia deploy is using Base mainnet USDC token address. Set USDC_TOKEN_ADDRESS to Sepolia USDC before deploying.",
+    );
+  }
+}
+
 async function syncFrontendContractConfig(
   address: string,
   networkName: string,
@@ -64,6 +78,7 @@ async function main() {
   const deployedNetworkName = getNetworkNameFromChainId(
     Number(providerNetwork.chainId),
   );
+  validateFeeConfigForNetwork(deployedNetworkName, feeTokenAddress);
 
   /**
    * Constructor receives fee config once, then generated frontend config is synced.
@@ -90,6 +105,27 @@ async function main() {
     console.log("Deployment block:", deploymentReceipt.blockNumber);
   }
   console.log("Synced frontend config:", GENERATED_FILE_PATH);
+
+  const isMainnetDeploy = deployedNetworkName === "base";
+  const frontendAddressKey = isMainnetDeploy
+    ? "NEXT_PUBLIC_RECEIPTUARY_CONTRACT_ADDRESS"
+    : "NEXT_PUBLIC_DEMO_RECEIPTUARY_CONTRACT_ADDRESS";
+  const frontendBlockKey = isMainnetDeploy
+    ? "NEXT_PUBLIC_RECEIPTUARY_DEPLOYMENT_BLOCK"
+    : "NEXT_PUBLIC_DEMO_RECEIPTUARY_DEPLOYMENT_BLOCK";
+  const checklistCommand = isMainnetDeploy
+    ? "npm run migration:v2:base:mainnet"
+    : "npm run migration:v2:base:sepolia";
+
+  console.log("V2 migration next steps:");
+  console.log(`1) Set ${frontendAddressKey}=${deployedAddress}`);
+  if (deploymentReceipt) {
+    console.log(`2) Set ${frontendBlockKey}=${deploymentReceipt.blockNumber}`);
+  } else {
+    console.log(`2) Set ${frontendBlockKey}=<deployment_block_number>`);
+  }
+  console.log("3) Restart app and run: npm run test:app:smoke");
+  console.log(`4) Full checklist: ${checklistCommand}`);
 }
 
 main().catch((error) => {

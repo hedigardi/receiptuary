@@ -16,6 +16,7 @@ describe("Receiptuary", function () {
     await token.waitForDeployment();
 
     await (await token.mint(issuer.address, 10_000_000n)).wait();
+    await (await token.mint(outsider.address, 10_000_000n)).wait();
 
     const receiptuaryFactory = await ethers.getContractFactory("Receiptuary");
     const receiptuary = await receiptuaryFactory.deploy(
@@ -47,22 +48,28 @@ describe("Receiptuary", function () {
     assert.equal(await receiptuary.isIssuerApproved(issuer.address), false);
   });
 
-  it("blocks unapproved issuer registration", async function () {
-    const { issuer, receiptuary } = await deployFixture();
+  it("allows open registration for non-allowlisted wallets after fee approval", async function () {
+    const { outsider, token, receiptuary } = await deployFixture();
 
-    await assert.rejects(
-      receiptuary.connect(issuer).registerReceipt(fileHash, "Apple Store"),
-      /Receiptuary: Issuer not approved/,
-    );
+    await (
+      await token
+        .connect(outsider)
+        .approve(await receiptuary.getAddress(), feeAmount)
+    ).wait();
+
+    await (
+      await receiptuary
+        .connect(outsider)
+        .registerReceipt(fileHash, "Apple Store")
+    ).wait();
+
+    const receipt = await receiptuary.getReceipt(fileHash);
+    assert.equal(receipt[2], outsider.address);
+    assert.equal(receipt[3], true);
   });
 
   it("transfers fee on successful registration after approval", async function () {
-    const { owner, issuer, treasury, token, receiptuary } =
-      await deployFixture();
-
-    await (
-      await receiptuary.connect(owner).setIssuerApproval(issuer.address, true)
-    ).wait();
+    const { issuer, treasury, token, receiptuary } = await deployFixture();
 
     await assert.rejects(
       receiptuary.connect(issuer).registerReceipt(fileHash, "Apple Store"),
@@ -94,11 +101,7 @@ describe("Receiptuary", function () {
   });
 
   it("rejects duplicate receipt hash registration", async function () {
-    const { owner, issuer, token, receiptuary } = await deployFixture();
-
-    await (
-      await receiptuary.connect(owner).setIssuerApproval(issuer.address, true)
-    ).wait();
+    const { issuer, token, receiptuary } = await deployFixture();
     await (
       await token
         .connect(issuer)

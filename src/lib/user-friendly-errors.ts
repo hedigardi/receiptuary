@@ -101,7 +101,7 @@ export function toUserFriendlyError(
   }
 
   if (normalized.includes("issuer not approved")) {
-    return "This wallet is not approved as an issuer. Ask an admin to allowlist your address.";
+    return "This contract requires an allowlisted issuer wallet. Use an approved wallet or deploy the open-registration contract version.";
   }
 
   if (
